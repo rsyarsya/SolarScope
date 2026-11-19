@@ -1,3 +1,4 @@
+using SolarScope.Core.Models;
 using SolarScope.Core.Services;
 
 namespace SolarScope;
@@ -8,7 +9,9 @@ public sealed class AppController : ApplicationContext
 {
     public AppSession Session { get; } = new();
     public SimulationManager Simulations { get; }
+    public ISimulationRepository History { get; }
     private readonly HttpClient? ownedHttpClient;
+    private readonly PostgresSimulationRepository? ownedRepository;
     private readonly Form window;
     private readonly Panel pageHost;
     private readonly NavigationRail navigation;
@@ -16,14 +19,35 @@ public sealed class AppController : ApplicationContext
     public Form ActivePage { get; private set; } = null!;
     private Screen resultOrigin = Screen.Input;
     private SimulationResult? shownResult;
+    private bool writingHistory;
 
-    public AppController(HttpClient? httpClient = null)
+    public AppController(HttpClient? httpClient = null, ISimulationRepository? history = null)
     {
         if (httpClient is null)
         {
             ownedHttpClient = httpClient = new HttpClient();
         }
         Simulations = new SimulationManager(new NasaPowerClient(httpClient));
+        if (history is null)
+        {
+            var connection = Environment.GetEnvironmentVariable(PostgresSimulationRepository.ConnectionEnvironmentVariable);
+            if (string.IsNullOrWhiteSpace(connection))
+            {
+                history = new UnavailableSimulationRepository("Koneksi database belum diatur. Atur koneksi dan buka ulang SolarScope.");
+            }
+            else
+            {
+                try
+                {
+                    history = ownedRepository = new PostgresSimulationRepository(connection);
+                }
+                catch (Exception error) when (error is ArgumentException or NotSupportedException)
+                {
+                    history = new UnavailableSimulationRepository("Konfigurasi database tidak valid. Periksa konfigurasi dan buka ulang SolarScope.");
+                }
+            }
+        }
+        History = history;
         window = new Form
         {
             Size = new Size(1100, 760),
@@ -41,6 +65,10 @@ public sealed class AppController : ApplicationContext
         window.Controls.Add(navigation);
         window.ClientSizeChanged += (_, _) => navigation.Width = window.LogicalToDeviceUnits(
             window.ClientSize.Width <= window.LogicalToDeviceUnits(980) ? 176 : 184);
+        window.FormClosing += (_, args) =>
+        {
+            if (writingHistory && args.CloseReason == CloseReason.UserClosing) args.Cancel = true;
+        };
         MainForm = window;
         Navigate(Screen.Home);
         window.Show();
@@ -53,6 +81,23 @@ public sealed class AppController : ApplicationContext
         {
             windowIcon.Dispose();
             ownedHttpClient?.Dispose();
+            ownedRepository?.Dispose();
+        }
+    }
+
+    internal async Task<ServiceResult<T>> WriteHistoryAsync<T>(Func<Task<ServiceResult<T>>> operation)
+    {
+        if (writingHistory) return ServiceResult<T>.Fail("Tunggu operasi riwayat selesai.");
+        writingHistory = true;
+        navigation.Enabled = false;
+        try
+        {
+            return await operation();
+        }
+        finally
+        {
+            writingHistory = false;
+            if (!navigation.IsDisposed) navigation.Enabled = true;
         }
     }
 
@@ -65,6 +110,7 @@ public sealed class AppController : ApplicationContext
 
     public void Navigate(Screen target)
     {
+        if (writingHistory) return;
         var previous = ActivePage;
         Form next = target switch {
             Screen.Home => new BerandaForm(this),

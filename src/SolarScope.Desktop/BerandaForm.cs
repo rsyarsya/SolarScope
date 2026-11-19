@@ -7,11 +7,26 @@ public partial class BerandaForm : Form
     public BerandaForm(AppController controller) : this()
     {
         btnCreate.Click += (_, _) => controller.Navigate(Screen.Input);
-        foreach (var entry in controller.Session.History.Take(3))
+        Shown += async (_, _) => await LoadRecentAsync(controller);
+    }
+
+    private async Task LoadRecentAsync(AppController controller)
+    {
+        lblRecentStatus.Text = "Memuat simulasi terakhir…";
+        lblRecentStatus.Visible = true;
+        var recent = await controller.History.GetAllSimulationsAsync();
+        if (IsDisposed) return;
+        if (!recent.IsSuccess)
         {
-            var result = entry.Result;
-            recentGrid.Rows.Add(result.Input.Name, result.Input.Location,
-                result.Estimate.Summary!.TotalAnnualEnergyKwh.ToString("N2", DemoData.Culture));
+            lblRecentStatus.Text = recent.ErrorMessage;
+            return;
+        }
+
+        lblRecentStatus.Visible = false;
+        foreach (var simulation in recent.Data!.Take(3))
+        {
+            recentGrid.Rows.Add(simulation.ScenarioName, simulation.Location.LocationName,
+                simulation.Summary!.TotalAnnualEnergyKwh.ToString("N2", DemoData.Culture));
         }
         DesktopLayout.SizeGrid(recentGrid, 3);
         recentSection.Visible = recentGrid.Rows.Count > 0;

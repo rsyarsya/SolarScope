@@ -28,6 +28,10 @@ Buka `SolarScope.sln` melalui Visual Studio 2022 dengan workload .NET desktop da
 
 Di menu Simulasi, isi nama, nama lokasi, koordinat desimal, dan kapasitas, lalu pilih **Hitung Estimasi**. Contoh koordinat Yogyakarta adalah latitude `-7,7956` dan longitude `110,3695`. Aplikasi membutuhkan internet untuk mengambil data klimatologi NASA POWER.
 
-Hasil simulasi bisa disimpan ke riwayat selama aplikasi dibuka. Layar Perbandingan menampilkan contoh kapasitas tetap.
+Simpan dan Riwayat menggunakan PostgreSQL. Sebelum menjalankan SolarScope, set environment variable
+`SOLARSCOPE_DB_CONNECTION` dengan koneksi PostgreSQL yang diberikan pengelola Supabase. Akun koneksi
+perlu izin baca, simpan, dan hapus pada skema SolarScope. Lihat [konfigurasi dan skema](docs/backend-architecture.md).
+Kredensial disimpan di luar Git. Perhitungan tetap tersedia saat database belum dikonfigurasi.
+Layar Perbandingan menampilkan contoh kapasitas tetap.
 
 Untuk menguji alur WinForms dengan data NASA POWER langsung, jalankan `dotnet run --project tests/SolarScope.Desktop.Verification -- --nasa-live`.

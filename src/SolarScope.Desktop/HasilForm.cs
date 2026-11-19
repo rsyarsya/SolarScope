@@ -13,19 +13,36 @@ public partial class HasilForm : Form
         btnKembali.Visible = origin == Screen.History;
         btnEdit.Click += (_, _) => controller.Navigate(Screen.Input);
         btnKembali.Click += (_, _) => controller.Navigate(origin);
-        btnSave.Click += (_, _) =>
+        btnSave.Click += async (_, _) => await SaveAsync(controller, result);
+        SavedState(result.Estimate.SimulationId > 0);
+    }
+
+    private async Task SaveAsync(AppController controller, SimulationResult result)
+    {
+        if (!btnSave.Enabled || result.Estimate.SimulationId > 0) return;
+        btnSave.Enabled = btnEdit.Enabled = false;
+        lblStatus.Text = "Menyimpan simulasi…";
+        var saved = await controller.WriteHistoryAsync(() => controller.History.InsertSimulationAsync(result.Estimate));
+        if (IsDisposed) return;
+
+        btnEdit.Enabled = true;
+        if (saved.IsSuccess)
         {
-            controller.Session.Save(result);
-            SavedState(controller.Session.Contains(result.Id));
-        };
-        SavedState(controller.Session.Contains(result.Id));
+            result.Estimate.SimulationId = saved.Data;
+            SavedState(true);
+        }
+        else
+        {
+            btnSave.Enabled = true;
+            lblStatus.Text = saved.ErrorMessage;
+        }
     }
 
     private void Bind(SimulationResult result)
     {
-        var input = result.Input;
+        var estimate = result.Estimate;
         var summary = result.Estimate.Summary!;
-        lblIdentitas.Text = $"{input.Name} · {input.Location} · {input.Capacity.ToString("N2", DemoData.Culture)} kWp";
+        lblIdentitas.Text = $"{estimate.ScenarioName} · {estimate.Location.LocationName} · {Energy(estimate.SystemParameter.SystemCapacityKwp)} kWp";
         lblIdentitas.AccessibleDescription = lblIdentitas.Text;
         Column(dgvBulanan, "month", "Bulan");
         Column(dgvBulanan, "energy", "Estimasi energi (kWh)", numeric: true);
@@ -47,7 +64,7 @@ public partial class HasilForm : Form
     {
         btnSave.Enabled = !saved;
         btnSave.Text = saved ? "Tersimpan" : "Simpan";
-        lblStatus.Text = saved ? "Tersimpan di riwayat sesi." : "Riwayat tersedia selama aplikasi dibuka.";
+        lblStatus.Text = saved ? "Tersimpan di Riwayat." : "";
         lblStatus.AccessibleRole = AccessibleRole.StaticText;
     }
 }

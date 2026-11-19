@@ -10,11 +10,13 @@ partial class RiwayatForm
     private Button btnOpen = null!;
     private Button btnDelete = null!;
     private Button btnCreate = null!;
+    private Button btnRefresh = null!;
 
     private void InitializeComponent()
     {
         btnOpen = Button("btnOpen", "Buka", primary: true);
         btnDelete = Button("btnDelete", "Hapus");
+        btnRefresh = Button("btnRefresh", "Muat ulang");
         btnCreate = Button("btnCreate", "Buat simulasi");
         dgvHistory = Grid("dgvHistory", 40, select: true);
         Column(dgvHistory, "name", "Nama simulasi");
@@ -25,9 +27,11 @@ partial class RiwayatForm
         foreach (Control child in content.Controls) child.Anchor = AnchorStyles.None;
         emptyPanel = new Panel { Dock = DockStyle.Top, Height = 188, BackColor = Color.White, Padding = new Padding(0, 54, 0, 0) };
         emptyPanel.Controls.Add(content);
+        emptyPanel.Visible = dgvHistory.Visible = false;
         lblStatus = Note("");
+        lblStatus.Name = "lblStatus";
         lblStatus.Visible = false;
-        Page(this, "Riwayat", Stack(12, Across(Title("Riwayat"), Actions(btnOpen, btnDelete)),
-            DesktopLayout.Text("Riwayat tersedia selama aplikasi dibuka.", ink: SolarTheme.MutedInk), Stack(0, dgvHistory, emptyPanel), lblStatus));
+        Page(this, "Riwayat", Stack(12, Across(Title("Riwayat"), Actions(btnRefresh, btnOpen, btnDelete)),
+            lblStatus, Stack(0, dgvHistory, emptyPanel)));
     }
 }

@@ -7,7 +7,7 @@ namespace SolarScope.Core.Services;
 /// Menyimpan dan membaca riwayat simulasi di PostgreSQL (Supabase) melalui Npgsql.
 /// Connection string diterima dari luar (environment variable SOLARSCOPE_DB_CONNECTION), tidak ditulis di kode.
 /// </summary>
-public sealed class PostgresSimulationRepository : IAsyncDisposable
+public sealed class PostgresSimulationRepository : ISimulationRepository, IDisposable, IAsyncDisposable
 {
     public const string ConnectionEnvironmentVariable = "SOLARSCOPE_DB_CONNECTION";
 
@@ -48,7 +48,8 @@ public sealed class PostgresSimulationRepository : IAsyncDisposable
             insertSimulation.Parameters.AddWithValue("name", simulation.ScenarioName.Trim());
             insertSimulation.Parameters.AddWithValue("lat", simulation.Location.Latitude);
             insertSimulation.Parameters.AddWithValue("lon", simulation.Location.Longitude);
-            insertSimulation.Parameters.AddWithValue("location", string.IsNullOrWhiteSpace(simulation.Location.LocationName) ? DBNull.Value : simulation.Location.LocationName);
+            insertSimulation.Parameters.AddWithValue("location", NpgsqlTypes.NpgsqlDbType.Text,
+                string.IsNullOrWhiteSpace(simulation.Location.LocationName) ? DBNull.Value : simulation.Location.LocationName);
             insertSimulation.Parameters.AddWithValue("kwp", simulation.SystemParameter.SystemCapacityKwp);
             insertSimulation.Parameters.AddWithValue("pr", simulation.SystemParameter.PerformanceRatio);
             insertSimulation.Parameters.AddWithValue("radiation", summary.MonthlyProductions.Average(m => m.SolarRadiationDailyAverage));
@@ -141,6 +142,12 @@ public sealed class PostgresSimulationRepository : IAsyncDisposable
                     });
                 }
             }
+
+            if (!simulation.Summary!.MonthlyProductions.Select(month => month.MonthIndex)
+                .SequenceEqual(Enumerable.Range(1, 12)))
+            {
+                return ServiceResult<Simulation>.Fail("Rincian bulanan simulasi tidak lengkap.");
+            }
             return ServiceResult<Simulation>.Ok(simulation);
         }
         catch (NpgsqlException ex)
@@ -166,6 +173,7 @@ public sealed class PostgresSimulationRepository : IAsyncDisposable
         }
     }
 
+    public void Dispose() => _dataSource.Dispose();
     public ValueTask DisposeAsync() => _dataSource.DisposeAsync();
 
     private const string SelectSimulation = """
@@ -199,6 +207,6 @@ public sealed class PostgresSimulationRepository : IAsyncDisposable
     };
 
     private static string DatabaseError(NpgsqlException ex) => ex is PostgresException pg
-        ? $"Database menolak operasi ({pg.SqlState}): {pg.MessageText}"
-        : "Tidak dapat terhubung ke database. Periksa koneksi internet dan status project Supabase.";
+        ? $"Database menolak operasi (kode {pg.SqlState}). Hubungi pengelola database jika masalah berlanjut."
+        : "Database tidak dapat diakses. Periksa koneksi internet, lalu coba lagi.";
 }

@@ -25,6 +25,7 @@ partial class HasilForm
         lblTertinggiValue = DesktopLayout.Text("", 10.5f, true);
         lblTerendahValue = DesktopLayout.Text("", 10.5f, true);
         lblStatus = Note("");
+        lblStatus.Name = "lblStatus";
         var source = DesktopLayout.Text("NASA POWER · klimatologi bulanan", 9.5f, true, SolarTheme.MutedInk);
         var annual = new RoundedPanel
         {
