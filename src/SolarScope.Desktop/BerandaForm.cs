@@ -26,7 +26,7 @@ public partial class BerandaForm : Form
         foreach (var simulation in recent.Data!.Take(3))
         {
             recentGrid.Rows.Add(simulation.ScenarioName, simulation.Location.LocationName,
-                simulation.Summary!.TotalAnnualEnergyKwh.ToString("N2", DemoData.Culture));
+                simulation.Summary!.TotalAnnualEnergyKwh.ToString("N2", DisplayFormat.Culture));
         }
         DesktopLayout.SizeGrid(recentGrid, 3);
         recentSection.Visible = recentGrid.Rows.Count > 0;

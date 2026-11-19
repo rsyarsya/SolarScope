@@ -13,6 +13,7 @@ public partial class HasilForm : Form
         btnKembali.Visible = origin == Screen.History;
         btnEdit.Click += (_, _) => controller.Navigate(Screen.Input);
         btnKembali.Click += (_, _) => controller.Navigate(origin);
+        btnCompareCapacities.Click += (_, _) => controller.Navigate(Screen.Comparison);
         btnSave.Click += async (_, _) => await SaveAsync(controller, result);
         SavedState(result.Estimate.SimulationId > 0);
     }
@@ -20,12 +21,12 @@ public partial class HasilForm : Form
     private async Task SaveAsync(AppController controller, SimulationResult result)
     {
         if (!btnSave.Enabled || result.Estimate.SimulationId > 0) return;
-        btnSave.Enabled = btnEdit.Enabled = false;
+        btnSave.Enabled = btnEdit.Enabled = btnCompareCapacities.Enabled = false;
         lblStatus.Text = "Menyimpan simulasi…";
         var saved = await controller.WriteHistoryAsync(() => controller.History.InsertSimulationAsync(result.Estimate));
         if (IsDisposed) return;
 
-        btnEdit.Enabled = true;
+        btnEdit.Enabled = btnCompareCapacities.Enabled = true;
         if (saved.IsSuccess)
         {
             result.Estimate.SimulationId = saved.Data;
@@ -58,7 +59,7 @@ public partial class HasilForm : Form
         lblTerendahValue.Text = $"{lowest.MonthName} · {Energy(lowest.EstimatedEnergyKwh)} kWh";
     }
 
-    private static string Energy(double value) => value.ToString("N2", DemoData.Culture);
+    private static string Energy(double value) => value.ToString("N2", DisplayFormat.Culture);
 
     private void SavedState(bool saved)
     {
