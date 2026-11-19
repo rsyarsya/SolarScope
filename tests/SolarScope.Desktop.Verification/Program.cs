@@ -47,20 +47,30 @@ internal static class Program
 
     private static void VerifyDesktop(AppController controller, NasaHandler handler, bool live)
     {
+        var window = controller.MainForm!;
+        var handle = window.Handle;
+        var host = window.Controls.Find("pageHost", false).Single();
+        var rail = window.Controls.Find("navigationRail", false).Single();
+        window.ClientSize = new System.Drawing.Size(1024, 700);
+        var bounds = window.Bounds;
         controller.Session.Draft = new("Draft tetap", "Yogyakarta", 3);
         for(int cycle=0; cycle<3; cycle++)
         {
             foreach(var screen in new[]{Screen.Input,Screen.History,Screen.Comparison,Screen.Guide,Screen.Home})
             {
-                var previous = controller.MainForm!;
+                var previous = controller.ActivePage!;
                 controller.Navigate(screen);
                 Application.DoEvents();
-                Check(previous.IsDisposed && Application.OpenForms.Count == 1, $"Cycle {cycle+1}, {screen}: previous disposed and one form open");
+                Check(previous.IsDisposed && controller.ActivePage.Parent == host && host.Controls.Count == 1
+                    && rail.Parent == window && rail.Visible && window.Controls.Count == 2
+                    && controller.MainForm == window && window.Handle == handle
+                    && window.Bounds == bounds && Application.OpenForms.Cast<Form>().Count(form => form.TopLevel) == 1,
+                    $"Cycle {cycle+1}, {screen}: page changes inside the same window");
             }
         }
         Check(controller.Session.Draft.Name == "Draft tetap", "Draft survives repeated navigation");
         controller.Navigate(Screen.Input);
-        var inputForm = controller.MainForm!;
+        var inputForm = controller.ActivePage!;
         var name = (TextBox)inputForm.Controls.Find("tbNamaSimulasi",true).Single();
         var location = (TextBox)inputForm.Controls.Find("tbLokasi",true).Single();
         var latitude = (TextBox)inputForm.Controls.Find("tbLatitude",true).Single();
@@ -68,14 +78,14 @@ internal static class Program
         var capacity = (NumericUpDown)inputForm.Controls.Find("nudKapasitas",true).Single();
         var preview = (Button)inputForm.Controls.Find("btnLihatHasil",true).Single();
         name.Text="  "; preview.PerformClick();
-        Check(controller.MainForm == inputForm && inputForm.Controls.Find("errorNama",true).Single().Text.Length>0, "Whitespace name is rejected inline");
+        Check(controller.ActivePage == inputForm && inputForm.Controls.Find("errorNama",true).Single().Text.Length>0, "Whitespace name is rejected inline");
         name.Text="Draft tetap"; location.Text=""; preview.PerformClick();
-        Check(controller.MainForm == inputForm && inputForm.Controls.Find("errorLokasi",true).Single().Text.Length>0, "Empty location is rejected inline");
+        Check(controller.ActivePage == inputForm && inputForm.Controls.Find("errorLokasi",true).Single().Text.Length>0, "Empty location is rejected inline");
         location.Text="Yogyakarta"; latitude.Text="-91"; longitude.Text="110.3695"; preview.PerformClick();
-        Check(controller.MainForm == inputForm && inputForm.Controls.Find("errorKoordinat",true).Single().Text.Contains("Latitude") && handler.RequestCount == 0,
+        Check(controller.ActivePage == inputForm && inputForm.Controls.Find("errorKoordinat",true).Single().Text.Contains("Latitude") && handler.RequestCount == 0,
             "Out-of-range coordinates are rejected before requesting data");
         latitude.Text="-7,7956"; capacity.Value=0; preview.PerformClick();
-        Check(controller.MainForm == inputForm && inputForm.Controls.Find("errorKapasitas",true).Single().Text.Length>0, "Zero capacity is rejected inline");
+        Check(controller.ActivePage == inputForm && inputForm.Controls.Find("errorKapasitas",true).Single().Text.Length>0, "Zero capacity is rejected inline");
         capacity.Value=2;
         if (!live)
         {
@@ -85,35 +95,44 @@ internal static class Program
             Check(handler.RequestCount == 1, "Only one request is sent while loading");
             handler.Complete(HttpStatusCode.ServiceUnavailable);
             WaitFor(() => preview.Enabled);
-            Check(controller.MainForm == inputForm && inputForm.Controls.Find("notice", true).Single().Text.Contains("503"),
+            Check(controller.ActivePage == inputForm && inputForm.Controls.Find("notice", true).Single().Text.Contains("503"),
                 "HTTP failure stays on input and enables retry");
         }
         preview.PerformClick();
         if (!live) handler.Complete(HttpStatusCode.OK);
-        WaitFor(() => controller.MainForm is HasilForm { Visible: true } && inputForm.IsDisposed);
-        Check(controller.MainForm is HasilForm, "Calculated result opens");
+        WaitFor(() => controller.ActivePage is HasilForm { Visible: true } && inputForm.IsDisposed);
+        Check(controller.ActivePage is HasilForm, "Calculated result opens");
         var first = controller.Session.CurrentResult!;
-        var results = controller.MainForm!;
+        var results = controller.ActivePage!;
         var grid = (DataGridView)results.Controls.Find("dgvBulanan",true).Single();
         Check(grid.Rows.Count == 12 && grid.ReadOnly, "Result UI displays twelve read-only rows");
+        var originalSize = window.Size;
+        window.Size = new System.Drawing.Size(960, 680);
+        Application.DoEvents();
+        var save = (Button)results.Controls.Find("btnSave", true).Single();
+        Check(grid.DisplayedRowCount(false) == 12
+            && window.RectangleToScreen(window.ClientRectangle).Contains(save.RectangleToScreen(save.ClientRectangle)),
+            "Compact result fits all months and the save action");
+        window.Size = originalSize;
         var firstTotal = first.Estimate.Summary!.TotalAnnualEnergyKwh;
         Check(live ? firstTotal > 0 : firstTotal == 2737.5, "Result uses calculated energy from NASA readings");
-        Check(results.Controls.Find("lblTotalValue", true).Single().Text == $"{firstTotal.ToString("N2", DemoData.Culture)} kWh",
+        Check(results.Controls.Find("lblTotalValue", true).Single().Text == firstTotal.ToString("N2", DemoData.Culture)
+            && results.Controls.Find("lblTotalUnit", true).Single().Text == "kWh",
             "Result shows the calculated total to two decimal places");
-        ((Button)results.Controls.Find("btnSave",true).Single()).PerformClick();
+        save.PerformClick();
         Check(!results.Controls.Find("btnSave",true).Single().Enabled && controller.Session.History.Count == 1, "Save button reflects saved state");
-        ((Button)results.Controls.Find("btnKembali",true).Single()).PerformClick();
-        Check(controller.MainForm is Form1, "Result back returns to Input");
-        inputForm = controller.MainForm!;
+        ((Button)results.Controls.Find("btnEdit",true).Single()).PerformClick();
+        Check(controller.ActivePage is Form1, "Result back returns to Input");
+        inputForm = controller.ActivePage!;
         Check(inputForm.Controls.Find("tbLatitude", true).Single().Text == "-7,7956", "Coordinates survive returning to the input form");
         ((Button)inputForm.Controls.Find("btnLihatHasil", true).Single()).PerformClick();
-        Check(controller.MainForm is HasilForm && controller.Session.CurrentResult?.Id == first.Id, "Unchanged input preserves result identity");
+        Check(controller.ActivePage is HasilForm && controller.Session.CurrentResult?.Id == first.Id, "Unchanged input preserves result identity");
         controller.Navigate(Screen.Input);
-        inputForm = controller.MainForm!;
+        inputForm = controller.ActivePage!;
         ((NumericUpDown)inputForm.Controls.Find("nudKapasitas", true).Single()).Value = 4;
         ((Button)inputForm.Controls.Find("btnLihatHasil", true).Single()).PerformClick();
         if (!live) handler.Complete(HttpStatusCode.OK);
-        WaitFor(() => controller.MainForm is HasilForm { Visible: true } && inputForm.IsDisposed);
+        WaitFor(() => controller.ActivePage is HasilForm { Visible: true } && inputForm.IsDisposed);
         var second = controller.Session.CurrentResult!;
         Check(second.Id != first.Id && Math.Abs(second.Estimate.Summary!.TotalAnnualEnergyKwh - 2 * firstTotal) <= 0.120001,
             "Doubling capacity approximately doubles the estimate");
@@ -121,11 +140,11 @@ internal static class Program
         Check(controller.Session.History[1].Result.Input.Capacity == 2, "Saved input preserves the original capacity");
         Check(controller.Session.Delete(second.Id) && !controller.Session.Delete(second.Id) && controller.Session.History.Count == 1, "Delete affects the selected entry only");
         controller.ShowResult(first, Screen.History);
-        Check(!controller.MainForm!.Controls.Find("btnEdit",true).Single().Visible, "Saved detail hides edit action");
-        ((Button)controller.MainForm.Controls.Find("btnKembali",true).Single()).PerformClick();
-        Check(controller.MainForm is RiwayatForm, "Saved detail back returns to History");
+        Check(!controller.ActivePage!.Controls.Find("btnEdit",true).Single().Visible, "Saved detail hides edit action");
+        ((Button)controller.ActivePage.Controls.Find("btnKembali",true).Single()).PerformClick();
+        Check(controller.ActivePage is RiwayatForm, "Saved detail back returns to History");
         controller.Navigate(Screen.Comparison);
-        var comparison = controller.MainForm!;
+        var comparison = controller.ActivePage!;
         var comparisonGrid = (DataGridView)comparison.Controls.Find("dgvComparison",true).Single();
         Check(comparisonGrid.Rows.Count == 12 && comparisonGrid.Columns.Count == 4, "Three-way comparison UI has twelve months and three capacity columns");
         ((CheckBox)comparison.Controls.Find("chk5",true).Single()).Checked=false;
@@ -134,9 +153,25 @@ internal static class Program
         ((CheckBox)comparison.Controls.Find("chk3",true).Single()).Checked=false;
         ((Button)comparison.Controls.Find("btnCompare",true).Single()).PerformClick();
         Check(comparisonGrid.Rows.Count == 0 && comparison.Controls.Find("lblValidation",true).Single().Text.Contains("minimal dua"), "One choice produces clear validation without stale data");
-        controller.MainForm.Close();
+        controller.Navigate(Screen.History);
+        var delete = (Button)controller.ActivePage.Controls.Find("btnDelete", true).Single();
+        RespondToDelete("btnCancel");
+        Check(controller.Session.History.Count == 1, "Cancel keeps the selected history entry");
+        RespondToDelete("btnConfirmDelete");
+        Check(controller.Session.History.Count == 0 && !delete.Enabled, "Confirm removes the entry and disables row actions");
+        window.Close();
         Application.DoEvents();
         Check(Application.OpenForms.Count == 0, "Closing active form leaves no hidden windows");
+
+        void RespondToDelete(string button)
+        {
+            window.BeginInvoke(() =>
+            {
+                var dialog = Application.OpenForms.Cast<Form>().Single(form => form.Text == "Hapus simulasi?");
+                ((Button)dialog.Controls.Find(button, true).Single()).PerformClick();
+            });
+            delete.PerformClick();
+        }
     }
 
     private static void WaitFor(Func<bool> condition)
