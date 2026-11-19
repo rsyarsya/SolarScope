@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType><TargetFramework>net9.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType><TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
     <Nullable>enable</Nullable><UseWindowsForms>true</UseWindowsForms><ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>Assets\solarscope.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Mapsui.WindowsForms" Version="5.2.0" />
     <ProjectReference Include="..\SolarScope.Core\SolarScope.Core.csproj" />
     <EmbeddedResource Include="Assets\solarscope-logo.png" LogicalName="SolarScope.Brand.png" />
     <EmbeddedResource Include="Assets\solarscope.ico" LogicalName="SolarScope.App.ico" />

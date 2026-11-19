@@ -10,6 +10,7 @@ public sealed class AppController : ApplicationContext
     public AppSession Session { get; } = new();
     public SimulationManager Simulations { get; }
     public ISimulationRepository History { get; }
+    internal HttpClient MapHttpClient { get; }
     private readonly HttpClient? ownedHttpClient;
     private readonly PostgresSimulationRepository? ownedRepository;
     private readonly Form window;
@@ -28,6 +29,7 @@ public sealed class AppController : ApplicationContext
             ownedHttpClient = httpClient = new HttpClient();
         }
         Simulations = new SimulationManager(new NasaPowerClient(httpClient));
+        MapHttpClient = httpClient;
         if (history is null)
         {
             var connection = Environment.GetEnvironmentVariable(PostgresSimulationRepository.ConnectionEnvironmentVariable);

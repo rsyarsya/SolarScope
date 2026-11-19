@@ -16,6 +16,11 @@ internal static class Program
     private static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
+        if (args.Contains("--map"))
+        {
+            MapLocationVerification.Run();
+            return;
+        }
         Check(DemoData.Scenarios.Select(s => s.Capacity).SequenceEqual(new decimal[]{2,3,5}), "Comparison has three approved capacity fixtures");
         foreach(var scenario in DemoData.Scenarios)
         {

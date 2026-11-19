@@ -54,6 +54,7 @@ internal static class Program
         Check(threw, "Rejects invalid year");
 
         await NasaPowerVerification.VerifyAsync(Check);
+        await GeoapifyVerification.VerifyAsync(Check);
         await VerifyDatabaseAsync(parameter, radiation);
 
         Console.WriteLine($"{checks} checks passed");
