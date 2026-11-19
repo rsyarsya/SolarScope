@@ -80,7 +80,7 @@ partial class BerandaForm
         mode.Name = "mode";
         mode.Location = new Point(860, 32);
         mode.Size = new Size(205, 32);
-        mode.Text = "Demonstrasi UI";
+        mode.Text = "SolarScope";
         mode.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
         mode.ForeColor = Color.White;
         mode.UseMnemonic = false;
@@ -186,7 +186,7 @@ partial class BerandaForm
         intro.Name = "intro";
         intro.Location = new Point(32, 65);
         intro.Size = new Size(1000, 42);
-        intro.Text = "Buat simulasi, jelajahi contoh hasil, lalu simpan skenario untuk dilihat kembali.";
+        intro.Text = "Hitung estimasi energi surya dari lokasi dan kapasitas sistem.";
         intro.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
         intro.ForeColor = Color.FromArgb(91, 105, 96);
         intro.UseMnemonic = false;
@@ -247,7 +247,7 @@ partial class BerandaForm
         steps.Name = "steps";
         steps.Location = new Point(38, 392);
         steps.Size = new Size(970, 32);
-        steps.Text = "Isi lokasi dan kapasitas  →  Lihat contoh hasil  →  Simpan dan buka kembali";
+        steps.Text = "Isi lokasi dan kapasitas  →  Hitung estimasi  →  Simpan ke riwayat sesi";
         steps.Font = new Font("Segoe UI", 12F, FontStyle.Regular);
         steps.ForeColor = Color.FromArgb(36, 53, 45);
         steps.UseMnemonic = false;

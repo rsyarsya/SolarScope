@@ -3,8 +3,6 @@ public partial class HasilForm : Form
 {
     private AppController? controller;
     public HasilForm() { InitializeComponent(); Text = "SolarScope | Hasil Estimasi"; }
-    public HasilForm(string namaSimulasi, string lokasi, decimal kapasitas) : this()
-        => Bind(DemoData.Create(new(namaSimulasi, lokasi, kapasitas)));
     public HasilForm(AppController controller, SimulationResult result, Screen origin) : this()
     {
         this.controller = controller;
@@ -24,16 +22,21 @@ public partial class HasilForm : Form
     private void Bind(SimulationResult result)
     {
         var input = result.Input;
-        lblIdentitas.Text = $"{input.Name}  |  {input.Location}\nKapasitas input: {input.Capacity.ToString("N2", DemoData.Culture)} kWp";
+        var summary = result.Estimate.Summary!;
+        lblIdentitas.Text = $"{input.Name}  |  {input.Location}\nKapasitas: {input.Capacity.ToString("N2", DemoData.Culture)} kWp  |  PR: {result.Estimate.SystemParameter.PerformanceRatio.ToString("P0", DemoData.Culture)}";
         dgvBulanan.Columns.Add("month", "Bulan");
-        dgvBulanan.Columns.Add("energy", "Energi contoh (kWh)");
+        dgvBulanan.Columns.Add("energy", "Estimasi energi (kWh)");
         dgvBulanan.Columns[1].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
         foreach (DataGridViewColumn col in dgvBulanan.Columns) col.SortMode = DataGridViewColumnSortMode.NotSortable;
-        foreach (var month in result.Months) dgvBulanan.Rows.Add(DemoData.Month(month.Month), DemoData.Number(month.Energy));
-        lblTotalValue.Text = $"{DemoData.Number(result.AnnualTotal)} kWh";
-        lblTertinggiValue.Text = $"{DemoData.Month(result.Highest.Month)} / {DemoData.Number(result.Highest.Energy)} kWh";
-        lblTerendahValue.Text = $"{DemoData.Month(result.Lowest.Month)} / {DemoData.Number(result.Lowest.Energy)} kWh";
+        foreach (var month in summary.MonthlyProductions)
+            dgvBulanan.Rows.Add(month.MonthName, Energy(month.EstimatedEnergyKwh));
+        lblTotalValue.Text = $"{Energy(summary.TotalAnnualEnergyKwh)} kWh";
+        var highest = summary.MonthlyProductions.MaxBy(month => month.EstimatedEnergyKwh)!;
+        var lowest = summary.MonthlyProductions.MinBy(month => month.EstimatedEnergyKwh)!;
+        lblTertinggiValue.Text = $"{highest.MonthName} / {Energy(highest.EstimatedEnergyKwh)} kWh";
+        lblTerendahValue.Text = $"{lowest.MonthName} / {Energy(lowest.EstimatedEnergyKwh)} kWh";
     }
+    private static string Energy(double value) => value.ToString("N2", DemoData.Culture);
     private void SavedState(SimulationResult result)
     {
         bool saved = controller?.Session.Contains(result.Id) == true;
