@@ -26,4 +26,8 @@ Buka `SolarScope.sln` melalui Visual Studio 2022 dengan workload .NET desktop da
 - Backend domain models: `src/SolarScope.Core/` (.NET 8).
 - Latihan login: `examples/LabLogin/`.
 
-UI dan navigasi ini menjadi frontend resmi. Data energi masih berupa contoh tetap, riwayat hanya bertahan selama sesi, dan frontend belum terhubung ke backend/API/database. Pengujian Windows 125% aktual belum terverifikasi.
+Di menu Simulasi, isi nama, nama lokasi, koordinat desimal, dan kapasitas, lalu pilih **Hitung Estimasi**. Contoh koordinat Yogyakarta adalah latitude `-7,7956` dan longitude `110,3695`. Aplikasi membutuhkan internet untuk mengambil data klimatologi NASA POWER.
+
+Hasil simulasi bisa disimpan ke riwayat selama aplikasi dibuka. Layar Perbandingan menampilkan contoh kapasitas tetap.
+
+Untuk menguji alur WinForms dengan data NASA POWER langsung, jalankan `dotnet run --project tests/SolarScope.Desktop.Verification -- --nasa-live`.

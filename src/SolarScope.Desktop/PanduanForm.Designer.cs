@@ -79,7 +79,7 @@ partial class PanduanForm
         mode.Name = "mode";
         mode.Location = new Point(860, 32);
         mode.Size = new Size(205, 32);
-        mode.Text = "Demonstrasi UI";
+        mode.Text = "Panduan";
         mode.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
         mode.ForeColor = Color.White;
         mode.UseMnemonic = false;
@@ -203,7 +203,7 @@ partial class PanduanForm
         lblStepsTitle.Name = "lblStepsTitle";
         lblStepsTitle.Location = new Point(38, 125);
         lblStepsTitle.Size = new Size(470, 35);
-        lblStepsTitle.Text = "Menjalankan demonstrasi";
+        lblStepsTitle.Text = "Menjalankan simulasi";
         lblStepsTitle.Font = new Font("Segoe UI", 15F, FontStyle.Bold);
         lblStepsTitle.ForeColor = Color.FromArgb(21, 82, 61);
         lblStepsTitle.UseMnemonic = false;
@@ -212,7 +212,7 @@ partial class PanduanForm
         lblSteps.Name = "lblSteps";
         lblSteps.Location = new Point(38, 176);
         lblSteps.Size = new Size(480, 160);
-        lblSteps.Text = "1. Buka Simulasi dan isi nama, lokasi, serta kapasitas.\n2. Pilih Lihat Contoh Hasil untuk membuka tabel bulanan.\n3. Simpan hasil, lalu buka kembali melalui Riwayat.\n4. Gunakan Perbandingan untuk memilih 2–3 skenario.";
+        lblSteps.Text = "1. Buka Simulasi, lalu isi nama, lokasi, koordinat, dan kapasitas.\n2. Pilih Hitung Estimasi untuk membuka tabel bulanan.\n3. Simpan hasil, lalu buka kembali melalui Riwayat.\n4. Perbandingan menampilkan contoh untuk 2–3 kapasitas.";
         lblSteps.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
         lblSteps.ForeColor = Color.FromArgb(36, 53, 45);
         lblSteps.UseMnemonic = false;
@@ -249,7 +249,7 @@ partial class PanduanForm
         lblLimits.Name = "lblLimits";
         lblLimits.Location = new Point(38, 397);
         lblLimits.Size = new Size(990, 116);
-        lblLimits.Text = "SolarScope ditujukan untuk edukasi dan estimasi awal. Produksi aktual dapat dipengaruhi bayangan,\norientasi panel, suhu, dan kondisi instalasi. Hasil bukan pengganti survei atau desain PLTS profesional.\n\nVersi tugas ini menggunakan data contoh tetap. Riwayat tersimpan hanya selama aplikasi dibuka.";
+        lblLimits.Text = "SolarScope ditujukan untuk edukasi dan estimasi awal. Produksi aktual dapat dipengaruhi bayangan,\norientasi panel, suhu, dan kondisi instalasi. Hasil bukan pengganti survei atau desain PLTS profesional.\n\nEstimasi memakai data klimatologi NASA POWER. Riwayat tersedia selama aplikasi dibuka.";
         lblLimits.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
         lblLimits.ForeColor = Color.FromArgb(91, 105, 96);
         lblLimits.UseMnemonic = false;

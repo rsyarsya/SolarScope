@@ -4,6 +4,9 @@
     <Nullable>enable</Nullable><UseWindowsForms>true</UseWindowsForms><ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SolarScope.Core\SolarScope.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Update="BerandaForm.cs"><SubType>Form</SubType></Compile>
     <Compile Update="Form1.cs"><SubType>Form</SubType></Compile>
     <Compile Update="HasilForm.cs"><SubType>Form</SubType></Compile>

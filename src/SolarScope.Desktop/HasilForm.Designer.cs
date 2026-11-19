@@ -83,7 +83,7 @@ partial class HasilForm
         mode.Name = "mode";
         mode.Location = new Point(860, 32);
         mode.Size = new Size(205, 32);
-        mode.Text = "Demonstrasi UI";
+        mode.Text = "NASA POWER";
         mode.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
         mode.ForeColor = Color.White;
         mode.UseMnemonic = false;
@@ -189,7 +189,7 @@ partial class HasilForm
         intro.Name = "intro";
         intro.Location = new Point(32, 65);
         intro.Size = new Size(1000, 42);
-        intro.Text = "Data contoh untuk demonstrasi UI. Angka tetap; tidak dihitung dari lokasi atau kapasitas input.";
+        intro.Text = "Estimasi awal berdasarkan data klimatologi NASA POWER untuk koordinat yang dimasukkan.";
         intro.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
         intro.ForeColor = Color.FromArgb(91, 105, 96);
         intro.UseMnemonic = false;
