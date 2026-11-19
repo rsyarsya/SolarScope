@@ -5,6 +5,7 @@ namespace SolarScope.Core.Services;
 
 public abstract class EnergyCalculator
 {
+    private const string EnergyOutOfRange = "Estimasi energi melampaui rentang angka yang dapat dihitung";
     private static readonly CultureInfo IndonesianCulture = CultureInfo.GetCultureInfo("id-ID");
 
     public ServiceResult<SimulationSummary> Calculate(SystemParameter parameter, IReadOnlyList<double> dailyRadiationByMonth)
@@ -27,18 +28,30 @@ public abstract class EnergyCalculator
         for (int month = 1; month <= 12; month++)
         {
             double radiation = dailyRadiationByMonth[month - 1];
+            double energy = Math.Round(EstimateMonthKwh(parameter, radiation, GetDaysInMonth(month)), 2);
+            if (!double.IsFinite(energy))
+            {
+                return ServiceResult<SimulationSummary>.Fail(EnergyOutOfRange);
+            }
+
             months.Add(new MonthlyProduction
             {
                 MonthIndex = month,
                 MonthName = IndonesianCulture.DateTimeFormat.GetMonthName(month),
                 SolarRadiationDailyAverage = radiation,
-                EstimatedEnergyKwh = Math.Round(EstimateMonthKwh(parameter, radiation, GetDaysInMonth(month)), 2)
+                EstimatedEnergyKwh = energy
             });
+        }
+
+        double annualTotal = Math.Round(months.Sum(m => m.EstimatedEnergyKwh), 2);
+        if (!double.IsFinite(annualTotal))
+        {
+            return ServiceResult<SimulationSummary>.Fail(EnergyOutOfRange);
         }
 
         return ServiceResult<SimulationSummary>.Ok(new SimulationSummary
         {
-            TotalAnnualEnergyKwh = Math.Round(months.Sum(m => m.EstimatedEnergyKwh), 2),
+            TotalAnnualEnergyKwh = annualTotal,
             PeakProductionMonth = months.MaxBy(m => m.EstimatedEnergyKwh)!.MonthName,
             LowestProductionMonth = months.MinBy(m => m.EstimatedEnergyKwh)!.MonthName,
             MonthlyProductions = months

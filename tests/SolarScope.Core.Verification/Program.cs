@@ -12,8 +12,15 @@ internal static class Program
         checks++;
     }
 
-    private static async Task<int> Main()
+    private static async Task<int> Main(string[] args)
     {
+        if (args.Contains("--nasa-live", StringComparer.Ordinal))
+        {
+            await NasaPowerVerification.VerifyLiveAsync(Check);
+            Console.WriteLine($"{checks} live NASA POWER checks passed");
+            return 0;
+        }
+
         var parameter = new SystemParameter { SystemCapacityKwp = 2, PerformanceRatio = 0.75 };
         var flatRadiation = Enumerable.Repeat(5.0, 12).ToArray();
 
@@ -37,11 +44,16 @@ internal static class Program
         Check(!new ClimatologyEnergyCalculator().Calculate(parameter, new double[11]).IsSuccess, "Rejects radiation data without 12 months");
         Check(!new ClimatologyEnergyCalculator().Calculate(parameter, flatRadiation.Select((v, i) => i == 3 ? -999 : v).ToArray()).IsSuccess, "Rejects negative (NASA fill value -999) radiation");
         Check(!new ClimatologyEnergyCalculator().Calculate(new SystemParameter { SystemCapacityKwp = 0 }, flatRadiation).IsSuccess, "Rejects zero capacity");
+        Check(!new ClimatologyEnergyCalculator().Calculate(new SystemParameter { SystemCapacityKwp = double.PositiveInfinity }, flatRadiation).IsSuccess, "Rejects non-finite capacity");
+        Check(!new ClimatologyEnergyCalculator().Calculate(new SystemParameter { SystemCapacityKwp = 2, PerformanceRatio = double.NaN }, flatRadiation).IsSuccess, "Rejects non-finite PR");
+        Check(!new ClimatologyEnergyCalculator().Calculate(new SystemParameter { SystemCapacityKwp = double.MaxValue }, flatRadiation).IsSuccess, "Rejects monthly energy overflow");
+        Check(!new ClimatologyEnergyCalculator().Calculate(new SystemParameter { SystemCapacityKwp = 1e306 }, flatRadiation).IsSuccess, "Rejects annual energy overflow");
 
         bool threw = false;
         try { _ = new YearlyEnergyCalculator(0); } catch (ArgumentOutOfRangeException) { threw = true; }
         Check(threw, "Rejects invalid year");
 
+        await NasaPowerVerification.VerifyAsync(Check);
         await VerifyDatabaseAsync(parameter, radiation);
 
         Console.WriteLine($"{checks} checks passed");
