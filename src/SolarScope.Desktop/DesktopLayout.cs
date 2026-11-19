@@ -244,7 +244,7 @@ internal class RoundedPanel : Panel
     }
 }
 
-internal sealed class SolarButton(Color background, Color ink, Color? outline) : Button
+internal class SolarButton(Color background, Color ink, Color? outline) : Button
 {
     protected override void OnPaint(PaintEventArgs e)
     {
@@ -259,12 +259,16 @@ internal sealed class SolarButton(Color background, Color ink, Color? outline) :
             using var pen = new Pen(border);
             e.Graphics.DrawPath(pen, shape);
         }
-        TextRenderer.DrawText(e.Graphics, Text, Font, ClientRectangle, Enabled ? ink : SolarTheme.MutedInk,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        DrawContent(e.Graphics, Enabled ? ink : SolarTheme.MutedInk);
         if (Enabled && (Focused || IsDefault))
         {
-            var focus = Focused && background == SolarTheme.Green ? Color.White : SolarTheme.Green;
+            var focus = background == DesktopLayout.DarkGreen || (Focused && background == SolarTheme.Green)
+                ? Color.White : SolarTheme.Green;
             ControlPaint.DrawFocusRectangle(e.Graphics, Rectangle.Inflate(ClientRectangle, -4, -4), focus, background);
         }
     }
+
+    protected virtual void DrawContent(Graphics graphics, Color textColor) =>
+        TextRenderer.DrawText(graphics, Text, Font, ClientRectangle, textColor,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
 }
