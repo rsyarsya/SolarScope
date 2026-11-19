@@ -1,57 +1,74 @@
+using static SolarScope.DesktopLayout;
+
 namespace SolarScope;
+
 public partial class PerbandinganForm : Form
 {
-    private AppController? controller;
-    private CheckBox[] Choices => new[] { chk2, chk3, chk5 };
-    public PerbandinganForm() { InitializeComponent(); Text = "SolarScope | Perbandingan Skenario"; }
+    public PerbandinganForm() => InitializeComponent();
+
     public PerbandinganForm(AppController controller) : this()
     {
-        this.controller = controller;
-                navHome.Click += (_, _) => controller?.Navigate(Screen.Home);
-        navInput.Click += (_, _) => controller?.Navigate(Screen.Input);
-        navHistory.Click += (_, _) => controller?.Navigate(Screen.History);
-        navComparison.Click += (_, _) => controller?.Navigate(Screen.Comparison);
-        navGuide.Click += (_, _) => controller?.Navigate(Screen.Guide);
-        for (int i=0; i<3; i++) Choices[i].Checked = controller.Session.ComparisonSelection[i];
-        foreach (var choice in Choices) choice.CheckedChanged += (_, _) => {
-            CaptureSelection();
-            dgvComparison.Rows.Clear(); dgvComparison.Columns.Clear();
-            lblSummary.Text = "Pilihan berubah. Klik Bandingkan untuk memperbarui tabel.";
-            lblValidation.Text = "";
-        };
-        btnCompare.Click += (_, _) => Compare();
-        btnBack.Click += (_, _) => controller.Navigate(Screen.Home);
-        Compare();
+        CheckBox[] choices = [chk2, chk3, chk5];
+        for (int i = 0; i < choices.Length; i++)
+        {
+            int index = i;
+            var choice = choices[i];
+            choice.Checked = controller.Session.ComparisonSelection[i];
+            choice.CheckedChanged += (_, _) =>
+            {
+                controller.Session.ComparisonSelection[index] = choice.Checked;
+                ResetTable();
+                lblSummary.Text = "Pilihan berubah. Pilih Bandingkan untuk memperbarui tabel.";
+                lblSummary.Visible = true;
+            };
+        }
+        btnCompare.Click += (_, _) => Compare(choices);
+        Compare(choices);
     }
-    private void CaptureSelection()
+
+    private void ResetTable()
     {
-        if (controller == null) return;
-        for (int i=0; i<3; i++) controller.Session.ComparisonSelection[i] = Choices[i].Checked;
+        dgvComparison.Columns.Clear();
+        dgvComparison.Visible = false;
+        totals.Visible = false;
+        foreach (var control in totals.Controls.Cast<Control>().ToArray()) control.Dispose();
+        totals.ColumnStyles.Clear();
+        lblValidation.Visible = lblSummary.Visible = false;
     }
-    private void Compare()
+
+    private void Compare(CheckBox[] choices)
     {
-        var selected = DemoData.Scenarios.Where((_, i) => Choices[i].Checked).ToArray();
-        dgvComparison.Rows.Clear(); dgvComparison.Columns.Clear();
+        ResetTable();
+        var selected = DemoData.Scenarios.Where((_, i) => choices[i].Checked).ToArray();
         if (!DemoData.ValidComparison(selected.Length))
         {
-            lblValidation.Text = "Pilih minimal dua skenario untuk dibandingkan (maksimal tiga).";
-            lblSummary.Text = "Belum ada perbandingan. Periksa pilihan skenario.";
+            lblValidation.Text = "Pilih minimal dua kapasitas untuk dibandingkan.";
+            lblValidation.Visible = true;
             return;
         }
-        lblValidation.Text = "";
-        dgvComparison.Columns.Add("month", "Bulan");
-        for (int i=0; i<selected.Length; i++)
+        Column(dgvComparison, "month", "Bulan");
+        totals.ColumnCount = selected.Length + 1;
+        for (int i = 0; i < totals.ColumnCount; i++)
+            totals.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / totals.ColumnCount));
+        var caption = Stack(2, DesktopLayout.Text("Total tahunan", 10.5f, true, DarkGreen), Note("kWh"));
+        caption.Padding = new Padding(12, 8, 0, 8);
+        totals.Controls.Add(caption, 0, 0);
+        for (int i = 0; i < selected.Length; i++)
         {
-            dgvComparison.Columns.Add("scenario"+i, $"{selected[i].Capacity} kWp (kWh)");
-            dgvComparison.Columns[i+1].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            var scenario = selected[i];
+            Column(dgvComparison, $"scenario{i}", $"{scenario.Capacity} kWp (kWh)", numeric: true);
+            var value = DesktopLayout.Text(DemoData.Number(scenario.AnnualTotal), 22, true, SolarTheme.Green);
+            value.Anchor = AnchorStyles.Right;
+            value.Margin = new Padding(0, 0, 13, 0);
+            totals.Controls.Add(value, i + 1, 0);
         }
-        foreach (DataGridViewColumn col in dgvComparison.Columns) col.SortMode = DataGridViewColumnSortMode.NotSortable;
-        for (int month=0; month<12; month++)
+        for (int month = 0; month < 12; month++)
         {
-            var cells = new List<object> { DemoData.Month(month+1) };
-            cells.AddRange(selected.Select(s => (object)DemoData.Number(s.Months[month].Energy)));
+            var cells = new List<object> { DemoData.Month(month + 1) };
+            cells.AddRange(selected.Select(scenario => (object)DemoData.Number(scenario.Months[month].Energy)));
             dgvComparison.Rows.Add(cells.ToArray());
         }
-        lblSummary.Text = "Total tahunan: " + string.Join("     |     ", selected.Select(s => $"{s.Capacity} kWp: {DemoData.Number(s.AnnualTotal)} kWh"));
+        SizeGrid(dgvComparison);
+        totals.Visible = dgvComparison.Visible = true;
     }
 }

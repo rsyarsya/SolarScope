@@ -2,9 +2,12 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType><TargetFramework>net9.0-windows</TargetFramework>
     <Nullable>enable</Nullable><UseWindowsForms>true</UseWindowsForms><ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>Assets\solarscope.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\SolarScope.Core\SolarScope.Core.csproj" />
+    <EmbeddedResource Include="Assets\solarscope-logo.png" LogicalName="SolarScope.Brand.png" />
+    <EmbeddedResource Include="Assets\solarscope.ico" LogicalName="SolarScope.App.ico" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="BerandaForm.cs"><SubType>Form</SubType></Compile>
