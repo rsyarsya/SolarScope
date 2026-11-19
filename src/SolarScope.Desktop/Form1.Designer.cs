@@ -41,18 +41,20 @@ partial class Form1
         notice.Visible = false;
         notice.AccessibleRole = AccessibleRole.Alert;
         btnLihatHasil = Button("btnLihatHasil", "Hitung estimasi", primary: true);
-        btnPickLocation = Button("btnPickLocation", "Pilih di peta");
+        btnPickLocation = new MapPickerButton();
         var location = Field("Nama lo&kasi", tbLokasi, errorLokasi);
         var coordinates = Stack(4,
             Across(Field("&Latitude", tbLatitude, errorKoordinat), Field("L&ongitude", tbLongitude, errorLongitude), balance: true),
             Note("Gunakan derajat desimal. Tanda minus berarti selatan atau barat."));
-        var locationRow = Across(location, btnPickLocation);
-        location.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-        btnPickLocation.Margin = new Padding(12, 0, 0, 0);
+        var locationFields = Stack(12, location, coordinates);
+        var locationRow = Across(locationFields, btnPickLocation);
+        locationFields.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+        btnPickLocation.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        btnPickLocation.Margin = new Padding(14, 0, 0, 0);
         var capacity = Field("&Kapasitas sistem", nudKapasitas, errorKapasitas, "kWp");
         capacity.MaximumSize = new Size(228, 0);
         var form = Stack(14, Field("&Nama simulasi", tbNamaSimulasi, errorNama),
-            locationRow, coordinates,
+            locationRow,
             Stack(4, capacity, Note("Daya puncak panel surya.")),
             Rule(), notice, btnLihatHasil);
         Page(this, "Simulasi", Stack(12, Title("Simulasi"), Card(form, 672)));
