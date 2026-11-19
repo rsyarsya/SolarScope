@@ -7,11 +7,11 @@ public class Location
     public string LocationName { get; set; } = string.Empty;
     public (bool IsValid, string? err) Validate()
     {
-        if (Latitude < -90 || Latitude > 90)
+        if (!double.IsFinite(Latitude) || Latitude < -90 || Latitude > 90)
         {
             return (false, "Latitude harus bernilai antara -90 dan 90");
         }
-        if (Longitude < -180 || Longitude > 180)
+        if (!double.IsFinite(Longitude) || Longitude < -180 || Longitude > 180)
         {
             return (false, "Longitude harus bernilai antara -180 dan 180");
         }
