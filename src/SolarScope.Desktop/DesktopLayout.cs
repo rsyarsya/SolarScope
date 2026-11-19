@@ -186,35 +186,6 @@ internal sealed class SolarGrid : DataGridView
     }
 }
 
-internal sealed class SolarCheckBox : CheckBox
-{
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        base.OnPaintBackground(e);
-        int side = LogicalToDeviceUnits(16);
-        var box = new Rectangle(1, (Height - side) / 2, side, side);
-        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        using var shape = DesktopLayout.Rounded(box, LogicalToDeviceUnits(3));
-        using var fill = new SolidBrush(Checked ? SolarTheme.Green : Color.White);
-        using var border = new Pen(Checked ? SolarTheme.Green : DesktopLayout.ControlBorder);
-        e.Graphics.FillPath(fill, shape);
-        e.Graphics.DrawPath(border, shape);
-        if (Checked)
-        {
-            using var tick = new Pen(Color.White, LogicalToDeviceUnits(2));
-            e.Graphics.DrawLines(tick, [
-                new Point(box.Left + side / 4, box.Top + side / 2),
-                new Point(box.Left + side / 2 - 1, box.Top + side * 3 / 4 - 1),
-                new Point(box.Left + side * 3 / 4, box.Top + side / 3)
-            ]);
-        }
-        var caption = Rectangle.FromLTRB(box.Right + LogicalToDeviceUnits(7), 0, Width, Height);
-        TextRenderer.DrawText(e.Graphics, Text, Font, caption, SolarTheme.Ink,
-            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
-        if (Focused) ControlPaint.DrawFocusRectangle(e.Graphics, ClientRectangle);
-    }
-}
-
 internal class RoundedPanel : Panel
 {
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]

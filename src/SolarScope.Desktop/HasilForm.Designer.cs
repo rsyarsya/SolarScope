@@ -13,6 +13,7 @@ partial class HasilForm
     private Button btnSave = null!;
     private Button btnEdit = null!;
     private Button btnKembali = null!;
+    private Button btnCompareCapacities = null!;
 
     private void InitializeComponent()
     {
@@ -45,7 +46,8 @@ partial class HasilForm
         btnSave = Button("btnSave", "Simpan", primary: true);
         btnEdit = Button("btnEdit", "Ubah input");
         btnKembali = Button("btnKembali", "Kembali ke riwayat");
-        var footer = Across(Stack(2, source, lblStatus), Actions(btnKembali, btnEdit, btnSave));
+        btnCompareCapacities = Button("btnCompareCapacities", "Bandingkan kapasitas");
+        var footer = Across(Stack(2, source, lblStatus), Actions(btnKembali, btnCompareCapacities, btnEdit, btnSave));
         Page(this, "Hasil", Stack(10, Stack(3, Title("Hasil"), lblIdentitas), annual, stats, dgvBulanan, footer));
     }
 }

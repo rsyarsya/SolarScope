@@ -21,14 +21,6 @@ internal static class Program
             MapLocationVerification.Run();
             return;
         }
-        Check(DemoData.Scenarios.Select(s => s.Capacity).SequenceEqual(new decimal[]{2,3,5}), "Comparison has three approved capacity fixtures");
-        foreach(var scenario in DemoData.Scenarios)
-        {
-            Check(scenario.Months.Count == 12 && scenario.Months.All(m => m.Energy > 0), $"Scenario {scenario.Capacity} has twelve positive monthly values");
-            Check(scenario.AnnualTotal == scenario.Months.Sum(m => m.Energy), $"Scenario {scenario.Capacity} total equals displayed months");
-        }
-        Check(!DemoData.ValidComparison(0) && !DemoData.ValidComparison(1) && DemoData.ValidComparison(2) && DemoData.ValidComparison(3) && !DemoData.ValidComparison(4), "Comparison accepts exactly two or three choices");
-
         bool live = args.Contains("--nasa-live");
         var handler = new NasaHandler();
         using var httpClient = live ? new HttpClient() : new HttpClient(handler);
@@ -73,6 +65,11 @@ internal static class Program
             }
         }
         Check(controller.Session.Draft.Name == "Draft tetap", "Draft survives repeated navigation");
+        controller.Navigate(Screen.Comparison);
+        Check(controller.ActivePage.Controls.Find("btnCreateComparisonSource", true).Single().Visible
+            && controller.ActivePage.Controls.Find("btnOpenHistory", true).Single().Visible
+            && !controller.ActivePage.Controls.Find("dgvComparison", true).Single().Visible,
+            "Comparison without a source offers simulation and history instead of sample data");
         controller.Navigate(Screen.Input);
         var inputForm = controller.ActivePage!;
         var name = (TextBox)inputForm.Controls.Find("tbNamaSimulasi",true).Single();
@@ -111,7 +108,7 @@ internal static class Program
         var grid = (DataGridView)results.Controls.Find("dgvBulanan",true).Single();
         Check(grid.Rows.Count == 12 && grid.ReadOnly, "Result UI displays twelve read-only rows");
         var originalSize = window.Size;
-        window.Size = new System.Drawing.Size(960, 680);
+        window.Size = new System.Drawing.Size(window.LogicalToDeviceUnits(960), window.LogicalToDeviceUnits(680));
         Application.DoEvents();
         var save = (Button)results.Controls.Find("btnSave", true).Single();
         Check(grid.DisplayedRowCount(false) == 12
@@ -120,9 +117,18 @@ internal static class Program
         window.Size = originalSize;
         var firstTotal = first.Estimate.Summary!.TotalAnnualEnergyKwh;
         Check(live ? firstTotal > 0 : firstTotal == 2737.5, "Result uses calculated energy from NASA readings");
-        Check(results.Controls.Find("lblTotalValue", true).Single().Text == firstTotal.ToString("N2", DemoData.Culture)
+        Check(results.Controls.Find("lblTotalValue", true).Single().Text == firstTotal.ToString("N2", DisplayFormat.Culture)
             && results.Controls.Find("lblTotalUnit", true).Single().Text == "kWh",
             "Result shows the calculated total to two decimal places");
+        int requestsBeforeComparison = handler.RequestCount;
+        ((Button)results.Controls.Find("btnCompareCapacities", true).Single()).PerformClick();
+        Check(controller.ActivePage is PerbandinganForm, "New result opens the comparison page");
+        var fromNewResult = VerifyComparison(controller.ActivePage, firstTotal);
+        Check(handler.RequestCount == requestsBeforeComparison && history.SaveRequests == 0,
+            "Comparing an open result reuses its data without network or persistence calls");
+        controller.Navigate(Screen.Result);
+        results = controller.ActivePage;
+        save = (Button)results.Controls.Find("btnSave", true).Single();
         var saveStatus = (Label)results.Controls.Find("lblStatus", true).Single();
         var failedSave = history.PauseNextSave();
         save.PerformClick();
@@ -181,22 +187,21 @@ internal static class Program
         var savedGrid = (DataGridView)controller.ActivePage.Controls.Find("dgvBulanan", true).Single();
         Check(savedGrid.Rows.Count == 12
             && savedGrid.Rows.Cast<DataGridViewRow>().Select(row => row.Cells[1].Value as string).SequenceEqual(
-                first.Estimate.Summary.MonthlyProductions.Select(month => month.EstimatedEnergyKwh.ToString("N2", DemoData.Culture)))
-            && controller.ActivePage.Controls.Find("lblTotalValue", true).Single().Text == firstTotal.ToString("N2", DemoData.Culture),
+                first.Estimate.Summary.MonthlyProductions.Select(month => month.EstimatedEnergyKwh.ToString("N2", DisplayFormat.Culture)))
+            && controller.ActivePage.Controls.Find("lblTotalValue", true).Single().Text == firstTotal.ToString("N2", DisplayFormat.Culture),
             "Opening persisted detail reconstructs the monthly rows and annual total");
         Check(!controller.ActivePage!.Controls.Find("btnEdit",true).Single().Visible, "Saved detail hides edit action");
         ((Button)controller.ActivePage.Controls.Find("btnKembali",true).Single()).PerformClick();
         Check(controller.ActivePage is RiwayatForm, "Saved detail back returns to History");
-        controller.Navigate(Screen.Comparison);
-        var comparison = controller.ActivePage!;
-        var comparisonGrid = (DataGridView)comparison.Controls.Find("dgvComparison",true).Single();
-        Check(comparisonGrid.Rows.Count == 12 && comparisonGrid.Columns.Count == 4, "Three-way comparison UI has twelve months and three capacity columns");
-        ((CheckBox)comparison.Controls.Find("chk5",true).Single()).Checked=false;
-        ((Button)comparison.Controls.Find("btnCompare",true).Single()).PerformClick();
-        Check(comparisonGrid.Rows.Count == 12 && comparisonGrid.Columns.Count == 3, "Two-way comparison updates table");
-        ((CheckBox)comparison.Controls.Find("chk3",true).Single()).Checked=false;
-        ((Button)comparison.Controls.Find("btnCompare",true).Single()).PerformClick();
-        Check(comparisonGrid.Rows.Count == 0 && comparison.Controls.Find("lblValidation",true).Single().Text.Contains("minimal dua"), "One choice produces clear validation without stale data");
+        open = (Button)controller.ActivePage.Controls.Find("btnOpen", true).Single();
+        WaitFor(() => open.Enabled);
+        open.PerformClick();
+        WaitFor(() => controller.ActivePage is HasilForm);
+        requestsBeforeComparison = handler.RequestCount;
+        ((Button)controller.ActivePage.Controls.Find("btnCompareCapacities", true).Single()).PerformClick();
+        var fromHistory = VerifyComparison(controller.ActivePage, firstTotal);
+        Check(fromHistory.SequenceEqual(fromNewResult) && handler.RequestCount == requestsBeforeComparison && history.SaveRequests == 2,
+            "Reopened history yields identical comparison values without a new request or write");
         controller.Navigate(Screen.History);
         var delete = (Button)controller.ActivePage.Controls.Find("btnDelete", true).Single();
         WaitFor(() => delete.Enabled);
@@ -210,6 +215,9 @@ internal static class Program
         WaitFor(() => history.Count == 0 && !delete.Enabled);
         Check(history.Count == 0 && ((DataGridView)controller.ActivePage.Controls.Find("dgvHistory", true).Single()).Rows.Count == 0,
             "Successful deletion removes the row and disables row actions");
+        controller.Navigate(Screen.Comparison);
+        Check(controller.ActivePage.Controls.Find("lblComparisonDetails", true).Single().Text.Contains("Acuan 4 kWp"),
+            "Deleting the viewed source falls back to the still-available simulation");
         controller.Navigate(Screen.Home);
         Application.DoEvents();
         Check(!controller.ActivePage.Controls.Find("recentGrid", true).Single().Visible,
@@ -227,6 +235,33 @@ internal static class Program
             });
             delete.PerformClick();
         }
+    }
+
+    private static string[] VerifyComparison(Form comparison, double firstTotal)
+    {
+        var grid = (DataGridView)comparison.Controls.Find("dgvComparison", true).Single();
+        var first = (TextBox)comparison.Controls.Find("tbAlternativeCapacity", true).Single();
+        var second = (TextBox)comparison.Controls.Find("tbAdditionalCapacity", true).Single();
+        var compare = (Button)comparison.Controls.Find("btnCompare", true).Single();
+        var error = (Label)comparison.Controls.Find("lblValidation", true).Single();
+        compare.PerformClick();
+        Check(error.Visible && !grid.Visible, "Comparison requires an alternative capacity");
+        first.Text = "2";
+        compare.PerformClick();
+        Check(error.Visible && error.Text.Contains("berbeda") && !grid.Visible, "Comparison rejects the original capacity as an alternative");
+        first.Text = "4,00";
+        compare.PerformClick();
+        Check(grid.Visible && grid.Rows.Count == 12 && grid.Columns.Count == 3
+            && comparison.Controls.Find("lblComparisonTotal0", true).Single().Text == firstTotal.ToString("N2", DisplayFormat.Culture),
+            "Two-way comparison shows the original result and all twelve months");
+        var values = grid.Rows.Cast<DataGridViewRow>().SelectMany(row => row.Cells.Cast<DataGridViewCell>())
+            .Select(cell => cell.Value?.ToString() ?? "").ToArray();
+        second.Text = "5.5";
+        Check(!grid.Visible && grid.Rows.Count == 0, "Editing a capacity clears the previous comparison");
+        compare.PerformClick();
+        Check(grid.Visible && grid.Rows.Count == 12 && grid.Columns.Count == 4
+            && grid.Columns[3].HeaderText == "5,5 kWp", "A third capacity accepts a decimal point and retains input order");
+        return values;
     }
 
     private static void WaitFor(Func<bool> condition)

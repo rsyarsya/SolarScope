@@ -58,8 +58,8 @@ public partial class RiwayatForm : Form
         foreach (var entry in history.Data!)
         {
             int row = dgvHistory.Rows.Add(entry.ScenarioName, entry.Location.LocationName,
-                entry.SystemParameter.SystemCapacityKwp.ToString("N2", DemoData.Culture),
-                entry.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH.mm", DemoData.Culture));
+                entry.SystemParameter.SystemCapacityKwp.ToString("N2", DisplayFormat.Culture),
+                entry.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH.mm", DisplayFormat.Culture));
             dgvHistory.Rows[row].Tag = entry;
         }
         UpdateRows();
@@ -90,7 +90,7 @@ public partial class RiwayatForm : Form
         if (IsDisposed) return;
         if (deletion.IsSuccess)
         {
-            controller.Session.ForgetResult(selected.SimulationId);
+            controller.ForgetDeletedSimulation(selected.SimulationId);
             dgvHistory.Rows.Remove(row);
             UpdateRows();
         }

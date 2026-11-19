@@ -37,6 +37,8 @@ Simpan dan Riwayat menggunakan PostgreSQL. Sebelum menjalankan SolarScope, set e
 `SOLARSCOPE_DB_CONNECTION` dengan koneksi PostgreSQL yang diberikan pengelola Supabase. Akun koneksi
 perlu izin baca, simpan, dan hapus pada skema SolarScope. Lihat [konfigurasi dan skema](docs/backend-architecture.md).
 Kredensial disimpan di luar Git. Perhitungan tetap tersedia saat database belum dikonfigurasi.
-Layar Perbandingan menampilkan contoh kapasitas tetap.
+Untuk membandingkan kapasitas, buka hasil baru atau hasil dari **Riwayat**, lalu pilih **Bandingkan kapasitas**.
+Masukkan satu atau dua kapasitas alternatif. Semua estimasi memakai lokasi, PR, dan data radiasi NASA POWER
+dari hasil tersebut.
 
 Untuk menguji alur WinForms dengan data NASA POWER langsung, jalankan `dotnet run --project tests/SolarScope.Desktop.Verification -- --nasa-live`.

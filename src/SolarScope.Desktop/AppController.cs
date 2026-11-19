@@ -110,6 +110,12 @@ public sealed class AppController : ApplicationContext
         Navigate(Screen.Result);
     }
 
+    internal void ForgetDeletedSimulation(int id)
+    {
+        Session.ForgetResult(id);
+        if (shownResult?.Estimate.SimulationId == id) shownResult = null;
+    }
+
     public void Navigate(Screen target)
     {
         if (writingHistory) return;
@@ -118,7 +124,7 @@ public sealed class AppController : ApplicationContext
             Screen.Home => new BerandaForm(this),
             Screen.Input => new Form1(this),
             Screen.History => new RiwayatForm(this),
-            Screen.Comparison => new PerbandinganForm(this),
+            Screen.Comparison => new PerbandinganForm(this, shownResult?.Estimate ?? Session.CurrentResult?.Estimate),
             Screen.Guide => new PanduanForm(),
             Screen.Result when shownResult is not null => new HasilForm(this, shownResult, resultOrigin),
             Screen.Result => throw new InvalidOperationException("Belum ada hasil simulasi."),

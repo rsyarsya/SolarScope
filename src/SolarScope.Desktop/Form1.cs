@@ -67,7 +67,7 @@ public partial class Form1 : Form
         }
     }
 
-    internal static string FormatCoordinate(double value) => value.ToString("0.######", DemoData.Culture);
+    internal static string FormatCoordinate(double value) => value.ToString("0.######", DisplayFormat.Culture);
     private void CaptureDraft()
     {
         if (controller != null)
@@ -188,7 +188,7 @@ public partial class Form1 : Form
     }
 
     private static bool TryCoordinate(string text, int limit, out double value) =>
-        (double.TryParse(text, NumberStyles.Float, DemoData.Culture, out value)
+        (double.TryParse(text, NumberStyles.Float, DisplayFormat.Culture, out value)
             || double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
         && double.IsFinite(value) && value >= -limit && value <= limit;
 }
