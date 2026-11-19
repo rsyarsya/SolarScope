@@ -16,8 +16,6 @@ internal static class Program
     private static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
-        var session = new AppSession();
-        Check(session.History.Count == 0, "New session has empty history");
         Check(DemoData.Scenarios.Select(s => s.Capacity).SequenceEqual(new decimal[]{2,3,5}), "Comparison has three approved capacity fixtures");
         foreach(var scenario in DemoData.Scenarios)
         {
@@ -29,11 +27,12 @@ internal static class Program
         bool live = args.Contains("--nasa-live");
         var handler = new NasaHandler();
         using var httpClient = live ? new HttpClient() : new HttpClient(handler);
-        using var controller = new AppController(httpClient);
+        var history = new TestSimulationRepository();
+        using var controller = new AppController(httpClient, history);
         Exception? failure = null;
         controller.MainForm!.BeginInvoke(() =>
         {
-            try { VerifyDesktop(controller, handler, live); }
+            try { VerifyDesktop(controller, handler, history, live); }
             catch (Exception error)
             {
                 failure = error;
@@ -45,7 +44,7 @@ internal static class Program
         Console.WriteLine($"TOTAL {checks} checks passed.");
     }
 
-    private static void VerifyDesktop(AppController controller, NasaHandler handler, bool live)
+    private static void VerifyDesktop(AppController controller, NasaHandler handler, TestSimulationRepository history, bool live)
     {
         var window = controller.MainForm!;
         var handle = window.Handle;
@@ -119,14 +118,27 @@ internal static class Program
         Check(results.Controls.Find("lblTotalValue", true).Single().Text == firstTotal.ToString("N2", DemoData.Culture)
             && results.Controls.Find("lblTotalUnit", true).Single().Text == "kWh",
             "Result shows the calculated total to two decimal places");
+        var saveStatus = (Label)results.Controls.Find("lblStatus", true).Single();
+        var failedSave = history.PauseNextSave();
         save.PerformClick();
-        Check(!results.Controls.Find("btnSave",true).Single().Enabled && controller.Session.History.Count == 1, "Save button reflects saved state");
+        save.PerformClick();
+        Check(history.SaveRequests == 1 && !save.Enabled && !rail.Enabled && saveStatus.Text.Contains("Menyimpan"),
+            "Pending save shows progress and prevents a second request");
+        failedSave.SetResult(false);
+        WaitFor(() => save.Enabled);
+        Check(first.Estimate.SimulationId == 0 && history.Count == 0 && saveStatus.Text == TestSimulationRepository.Error,
+            "Failed save leaves the result unsaved and allows retry");
+        save.PerformClick();
+        WaitFor(() => save.Text == "Tersimpan");
+        Check(!save.Enabled && history.Count == 1 && first.Estimate.SimulationId > 0, "Successful save records the database ID");
         ((Button)results.Controls.Find("btnEdit",true).Single()).PerformClick();
         Check(controller.ActivePage is Form1, "Result back returns to Input");
         inputForm = controller.ActivePage!;
         Check(inputForm.Controls.Find("tbLatitude", true).Single().Text == "-7,7956", "Coordinates survive returning to the input form");
         ((Button)inputForm.Controls.Find("btnLihatHasil", true).Single()).PerformClick();
-        Check(controller.ActivePage is HasilForm && controller.Session.CurrentResult?.Id == first.Id, "Unchanged input preserves result identity");
+        Check(controller.ActivePage is HasilForm && ReferenceEquals(controller.Session.CurrentResult, first)
+            && !controller.ActivePage.Controls.Find("btnSave", true).Single().Enabled,
+            "Unchanged input reopens the saved result without allowing a duplicate insert");
         controller.Navigate(Screen.Input);
         inputForm = controller.ActivePage!;
         ((NumericUpDown)inputForm.Controls.Find("nudKapasitas", true).Single()).Value = 4;
@@ -134,12 +146,39 @@ internal static class Program
         if (!live) handler.Complete(HttpStatusCode.OK);
         WaitFor(() => controller.ActivePage is HasilForm { Visible: true } && inputForm.IsDisposed);
         var second = controller.Session.CurrentResult!;
-        Check(second.Id != first.Id && Math.Abs(second.Estimate.Summary!.TotalAnnualEnergyKwh - 2 * firstTotal) <= 0.120001,
+        Check(!ReferenceEquals(second, first) && Math.Abs(second.Estimate.Summary!.TotalAnnualEnergyKwh - 2 * firstTotal) <= 0.120001,
             "Doubling capacity approximately doubles the estimate");
-        Check(controller.Session.Save(second) && !controller.Session.Save(second) && controller.Session.History.Count == 2, "Duplicate save is prevented");
-        Check(controller.Session.History[1].Result.Input.Capacity == 2, "Saved input preserves the original capacity");
-        Check(controller.Session.Delete(second.Id) && !controller.Session.Delete(second.Id) && controller.Session.History.Count == 1, "Delete affects the selected entry only");
-        controller.ShowResult(first, Screen.History);
+        controller.Navigate(Screen.Home);
+        var recent = (DataGridView)controller.ActivePage.Controls.Find("recentGrid", true).Single();
+        WaitFor(() => recent.Rows.Count == 1);
+        Check(recent.Rows[0].Cells[0].Value as string == first.Estimate.ScenarioName, "Home loads the saved simulation from the repository");
+
+        history.FailNextList = true;
+        controller.Navigate(Screen.History);
+        var historyPage = controller.ActivePage;
+        var historyGrid = (DataGridView)historyPage.Controls.Find("dgvHistory", true).Single();
+        var historyStatus = (Label)historyPage.Controls.Find("lblStatus", true).Single();
+        var refresh = (Button)historyPage.Controls.Find("btnRefresh", true).Single();
+        var open = (Button)historyPage.Controls.Find("btnOpen", true).Single();
+        WaitFor(() => historyStatus.Text == TestSimulationRepository.Error);
+        Check(!historyGrid.Visible && !open.Enabled && refresh.Enabled, "Failed history load shows an error and offers retry");
+        refresh.PerformClick();
+        WaitFor(() => open.Enabled);
+        Check(historyGrid.Rows.Count == 1 && historyGrid.Rows[0].Cells[2].Value as string == "2,00",
+            "History loads the stored row and its original input after retry");
+
+        history.FailNextOpen = true;
+        open.PerformClick();
+        Check(controller.ActivePage == historyPage && historyStatus.Text == TestSimulationRepository.Error && open.Enabled,
+            "Failed detail load stays on History and allows retry");
+        open.PerformClick();
+        WaitFor(() => controller.ActivePage is HasilForm);
+        var savedGrid = (DataGridView)controller.ActivePage.Controls.Find("dgvBulanan", true).Single();
+        Check(savedGrid.Rows.Count == 12
+            && savedGrid.Rows.Cast<DataGridViewRow>().Select(row => row.Cells[1].Value as string).SequenceEqual(
+                first.Estimate.Summary.MonthlyProductions.Select(month => month.EstimatedEnergyKwh.ToString("N2", DemoData.Culture)))
+            && controller.ActivePage.Controls.Find("lblTotalValue", true).Single().Text == firstTotal.ToString("N2", DemoData.Culture),
+            "Opening persisted detail reconstructs the monthly rows and annual total");
         Check(!controller.ActivePage!.Controls.Find("btnEdit",true).Single().Visible, "Saved detail hides edit action");
         ((Button)controller.ActivePage.Controls.Find("btnKembali",true).Single()).PerformClick();
         Check(controller.ActivePage is RiwayatForm, "Saved detail back returns to History");
@@ -155,10 +194,21 @@ internal static class Program
         Check(comparisonGrid.Rows.Count == 0 && comparison.Controls.Find("lblValidation",true).Single().Text.Contains("minimal dua"), "One choice produces clear validation without stale data");
         controller.Navigate(Screen.History);
         var delete = (Button)controller.ActivePage.Controls.Find("btnDelete", true).Single();
+        WaitFor(() => delete.Enabled);
         RespondToDelete("btnCancel");
-        Check(controller.Session.History.Count == 1, "Cancel keeps the selected history entry");
+        Check(history.Count == 1 && history.DeleteRequests == 0, "Cancel keeps the selected history entry");
+        history.FailNextDelete = true;
         RespondToDelete("btnConfirmDelete");
-        Check(controller.Session.History.Count == 0 && !delete.Enabled, "Confirm removes the entry and disables row actions");
+        Check(history.Count == 1 && delete.Enabled && controller.ActivePage.Controls.Find("lblStatus", true).Single().Text == TestSimulationRepository.Error,
+            "Failed deletion keeps the row and allows retry");
+        RespondToDelete("btnConfirmDelete");
+        WaitFor(() => history.Count == 0 && !delete.Enabled);
+        Check(history.Count == 0 && ((DataGridView)controller.ActivePage.Controls.Find("dgvHistory", true).Single()).Rows.Count == 0,
+            "Successful deletion removes the row and disables row actions");
+        controller.Navigate(Screen.Home);
+        Application.DoEvents();
+        Check(!controller.ActivePage.Controls.Find("recentGrid", true).Single().Visible,
+            "Home no longer shows the deleted simulation");
         window.Close();
         Application.DoEvents();
         Check(Application.OpenForms.Count == 0, "Closing active form leaves no hidden windows");

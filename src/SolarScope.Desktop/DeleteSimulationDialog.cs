@@ -23,7 +23,7 @@ internal sealed class DeleteSimulationDialog : Form
         var delete = Button("btnConfirmDelete", "Hapus", danger: true);
         delete.DialogResult = DialogResult.Yes;
         AcceptButton = CancelButton = cancel;
-        var message = DesktopLayout.Text($"“{name}” akan dihapus dari riwayat sesi.");
+        var message = DesktopLayout.Text($"“{name}” akan dihapus dari riwayat.");
         message.MaximumSize = new Size(382, 0);
         Controls.Add(Stack(14, DesktopLayout.Text("Hapus simulasi?", 15, true),
             message, Across(new Panel { Size = Size.Empty }, Actions(cancel, delete))));

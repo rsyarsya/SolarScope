@@ -6,8 +6,7 @@ namespace SolarScope;
 public sealed record SimulationDraft(
     string Name, string Location, decimal Capacity, string Latitude = "", string Longitude = "");
 public sealed record MonthlyEnergy(int Month, decimal Energy);
-public sealed record SimulationResult(Guid Id, SimulationDraft Input, Simulation Estimate);
-public sealed record HistoryEntry(SimulationResult Result, DateTime SavedAt);
+public sealed record SimulationResult(SimulationDraft? Input, Simulation Estimate);
 public sealed record ComparisonScenario(string Name, decimal Capacity, IReadOnlyList<MonthlyEnergy> Months)
 {
     public decimal AnnualTotal => Months.Sum(x => x.Energy);
@@ -34,17 +33,12 @@ public sealed class AppSession
 {
     public SimulationDraft Draft { get; set; } = new("", "", 3);
     public SimulationResult? CurrentResult { get; private set; }
-    private readonly List<HistoryEntry> history = new();
-    public IReadOnlyList<HistoryEntry> History => history.AsReadOnly();
     public bool[] ComparisonSelection { get; } = { true, true, true };
     public SimulationResult SetResult(SimulationDraft input, Simulation estimate) =>
-        CurrentResult = new SimulationResult(Guid.NewGuid(), input, estimate);
-    public bool Contains(Guid id) => history.Any(x => x.Result.Id == id);
-    public bool Save(SimulationResult result)
+        CurrentResult = new SimulationResult(input, estimate);
+
+    public void ForgetResult(int simulationId)
     {
-        if (Contains(result.Id)) return false;
-        history.Insert(0, new HistoryEntry(result, DateTime.Now));
-        return true;
+        if (CurrentResult?.Estimate.SimulationId == simulationId) CurrentResult = null;
     }
-    public bool Delete(Guid id) => history.RemoveAll(x => x.Result.Id == id) > 0;
 }
