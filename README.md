@@ -18,7 +18,7 @@ SolarScope adalah aplikasi desktop Windows berbasis C# untuk membantu pengguna n
 
 Enam layar Windows Forms resmi berada di `src/SolarScope.Desktop/`: Beranda, Input Simulasi, Hasil Estimasi, Riwayat, Perbandingan, dan Panduan. UI menggunakan C# dan .NET 9, dengan file Designer yang dapat diedit kembali.
 
-Buka `SolarScope.sln` melalui Visual Studio 2022 dengan workload .NET desktop dan .NET 9 SDK. Tetapkan `SolarScope.Desktop` sebagai startup project, lalu jalankan dengan Ctrl+F5.
+Buka `SolarScope.sln` melalui Visual Studio 2022 dengan workload .NET desktop dan .NET 9 SDK. Aplikasi menargetkan Windows 10 versi 2004 (build 19041) atau lebih baru. Tetapkan `SolarScope.Desktop` sebagai startup project, lalu jalankan dengan Ctrl+F5.
 
 - Build seluruh solution: `dotnet build SolarScope.sln`
 - Jalankan frontend: `dotnet run --project src/SolarScope.Desktop/SolarScope.Desktop.csproj`
@@ -27,6 +27,11 @@ Buka `SolarScope.sln` melalui Visual Studio 2022 dengan workload .NET desktop da
 - Latihan login: `examples/LabLogin/`.
 
 Di menu Simulasi, isi nama, nama lokasi, koordinat desimal, dan kapasitas, lalu pilih **Hitung Estimasi**. Contoh koordinat Yogyakarta adalah latitude `-7,7956` dan longitude `110,3695`. Aplikasi membutuhkan internet untuk mengambil data klimatologi NASA POWER.
+
+Untuk memakai **Pilih di peta**, atur `SOLARSCOPE_GEOAPIFY_API_KEY` di lingkungan lokal sebelum menjalankan
+aplikasi. Satu key [Geoapify](https://www.geoapify.com/) dipakai untuk tile peta dan pencarian nama wilayah.
+Geoapify menerima koordinat pin saat kamu memilih **Gunakan lokasi ini**. Nama wilayah dan koordinat
+tetap bisa diedit di form. Simpan key di luar Git.
 
 Simpan dan Riwayat menggunakan PostgreSQL. Sebelum menjalankan SolarScope, set environment variable
 `SOLARSCOPE_DB_CONNECTION` dengan koneksi PostgreSQL yang diberikan pengelola Supabase. Akun koneksi

@@ -26,11 +26,48 @@ public partial class Form1 : Form
         tbLatitude.TextChanged += (_, _) => { CaptureDraft(); errorKoordinat.Text = ""; };
         tbLongitude.TextChanged += (_, _) => { CaptureDraft(); errorLongitude.Text = ""; };
         nudKapasitas.ValueChanged += (_, _) => { CaptureDraft(); errorKapasitas.Text = ""; };
+        btnPickLocation.Click += (_, _) => PickLocation();
         btnLihatHasil.Click += async (_, _) => await CalculateAsync();
         FormClosed += (_, _) => calculation?.Cancel();
         Disposed += (_, _) => calculation?.Cancel();
         AcceptButton = btnLihatHasil;
     }
+
+    private void PickLocation()
+    {
+        if (controller is null || calculation is not null) return;
+        var key = Environment.GetEnvironmentVariable("SOLARSCOPE_GEOAPIFY_API_KEY")?.Trim();
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            ShowNotice("Peta belum dikonfigurasi. Isi lokasi secara manual atau atur SOLARSCOPE_GEOAPIFY_API_KEY.", error: true);
+            return;
+        }
+
+        bool hasLatitude = TryCoordinate(tbLatitude.Text, 90, out double latitude);
+        bool hasLongitude = TryCoordinate(tbLongitude.Text, 180, out double longitude);
+        var initial = hasLatitude && hasLongitude ? new MapPoint(latitude, longitude) : (MapPoint?)null;
+        using var picker = new MapLocationDialog(controller.MapHttpClient, key, initial);
+        if (picker.ShowDialog(controller.MainForm) != DialogResult.OK || picker.Selection is not { } selection) return;
+
+        tbLatitude.Text = FormatCoordinate(selection.Point.Latitude);
+        tbLongitude.Text = FormatCoordinate(selection.Point.Longitude);
+        bool unchanged = initial is { } previous && previous.Rounded() == selection.Point;
+        tbLokasi.Text = selection.Region ?? (unchanged ? tbLokasi.Text : "");
+        errorLokasi.Text = errorKoordinat.Text = errorLongitude.Text = "";
+        btnLihatHasil.Text = "Hitung estimasi";
+        if (selection.Region is null && string.IsNullOrWhiteSpace(tbLokasi.Text))
+        {
+            ShowNotice("Nama wilayah belum ditemukan. Isi nama lokasi secara manual.");
+            tbLokasi.Focus();
+        }
+        else
+        {
+            ShowNotice("");
+            nudKapasitas.Focus();
+        }
+    }
+
+    internal static string FormatCoordinate(double value) => value.ToString("0.######", DemoData.Culture);
     private void CaptureDraft()
     {
         if (controller != null)
@@ -87,7 +124,7 @@ public partial class Form1 : Form
 
     private void SetCalculating(bool busy)
     {
-        btnLihatHasil.Enabled = tbNamaSimulasi.Enabled = tbLokasi.Enabled =
+        btnLihatHasil.Enabled = btnPickLocation.Enabled = tbNamaSimulasi.Enabled = tbLokasi.Enabled =
             tbLatitude.Enabled = tbLongitude.Enabled = nudKapasitas.Enabled = !busy;
         btnLihatHasil.Text = busy ? "Menghitung…" : notice.ForeColor == Error ? "Coba lagi" : "Hitung estimasi";
         if (busy) ShowNotice("Mengambil data radiasi dari NASA POWER…");
