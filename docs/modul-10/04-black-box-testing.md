@@ -65,12 +65,38 @@ Data uji utama: nama `Atap rumah`, lokasi `Yogyakarta`, latitude `-7,7956`, long
 | G. Panduan | 1 | | |
 | **Total** | **34** | | |
 
+## Temuan dan Perbaikan (Sanity Testing)
+
+Smoke test pertama menemukan dua cacat. Keduanya diperbaiki lalu diuji ulang (sanity testing) sebelum worksheet di atas diisi.
+
+| No. | Temuan | Penyebab | Perbaikan | Uji ulang |
+| --- | --- | --- | --- | --- |
+| 1 | Peta gagal dimuat dan **Hitung estimasi** timeout pada percobaan pertama, baru berhasil setelah diulang | `HttpClient` bawaan .NET mencoba alamat IPv6 lebih dulu dan menunggu sekitar 21 detik bila jalur IPv6 jaringan macet, melebihi batas waktu peta (8 detik) dan NASA POWER (15 detik) | `FastFallbackHttp`: koneksi bergaya Happy Eyeballs (RFC 8305), alamat berikutnya (IPv4) dicoba 250 ms kemudian dan koneksi pertama yang berhasil dipakai | Peta dan estimasi berhasil pada percobaan pertama. Uji otomatis: alamat macet beralih ke alamat berikutnya dalam sekitar 0,3 detik |
+| 2 | Dialog **Hapus simulasi?** tampil sangat sempit, tombol **Batal** dan **Hapus** tidak terlihat | Form `AutoSize` mode `GrowAndShrink` menyusut ke lebar minimum layout | Mode diganti `GrowOnly` sehingga ukuran 430 px menjadi batas minimum | Dialog tampil utuh (lihat gambar 10) |
+
+## Lampiran: Bukti Pengujian
+
+| Gambar | Kasus |
+| --- | --- |
+| ![Beranda](img/01-beranda.png) | B.1 Beranda menampilkan simulasi terakhir |
+| ![Validasi](img/02-simulasi-validasi.png) | C.2 sampai C.7 Pesan validasi input |
+| ![Peta](img/03-pilih-lokasi-peta.png) | C.8 Pilih lokasi di peta |
+| ![Terisi](img/04-simulasi-terisi.png) | C.8 Nama lokasi dan koordinat terisi otomatis |
+| ![Hasil](img/05-hasil.png) | C.1, D.1 sampai D.3 Hasil estimasi Yogyakarta 2 kWp |
+| ![Tersimpan](img/06-hasil-tersimpan.png) | D.4 Simpan ke riwayat |
+| ![Kapasitas sama](img/07-perbandingan-kapasitas-sama.png) | F.4 Kapasitas sama ditolak |
+| ![Perbandingan](img/08-perbandingan.png) | F.2 dan F.3 Perbandingan 2, 4, dan 6 kWp |
+| ![Riwayat](img/09-riwayat.png) | E.1 Daftar riwayat |
+| ![Konfirmasi hapus](img/10-hapus-konfirmasi.png) | E.3 dan E.4 Konfirmasi hapus |
+| ![Setelah hapus](img/11-riwayat-dihapus.png) | E.4 Simulasi dihapus |
+| ![Panduan](img/12-panduan.png) | G.1 Halaman Panduan |
+
 ## Lampiran: Pengujian Otomatis
 
 Selain black box manual, tim menjalankan verifikasi otomatis (unit dan integration testing) dari source code:
 
 | Perintah | Cakupan | Hasil |
 | --- | --- | --- |
-| `dotnet run --project tests/SolarScope.Core.Verification` | Rumus energi, validasi input, parsing dan error NASA POWER, Geoapify, cache, `SimulationManager`, perbandingan, simpan-baca-hapus ke Supabase | 66 check lulus |
+| `dotnet run --project tests/SolarScope.Core.Verification` | Rumus energi, validasi input, parsing dan error NASA POWER, Geoapify, cache, koneksi cepat IPv6/IPv4, `SimulationManager`, perbandingan, simpan-baca-hapus ke Supabase | 69 check lulus |
 | `dotnet run --project tests/SolarScope.Desktop.Verification` | Konfigurasi `solarscope.settings.json`, navigasi, alur simulasi sampai simpan, riwayat, perbandingan | 68 check lulus |
 | `dotnet run --project tests/SolarScope.Desktop.Verification -- --map` | Dialog peta dengan respons Geoapify tiruan | Lulus |

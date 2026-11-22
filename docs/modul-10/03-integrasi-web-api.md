@@ -59,6 +59,8 @@ Form1 ─► SimulationManager.CalculateAsync ─► NasaPowerClient.GetMonthlyR
 
 **Cache:** hasil yang berhasil disimpan di memori per koordinat selama aplikasi terbuka. Simulasi ulang di lokasi yang sama tidak memanggil API lagi.
 
+**Koneksi cepat (`FastFallbackHttp`):** kedua API dipanggil lewat satu `HttpClient` yang mencoba alamat IPv6 dan IPv4 secara bergiliran dengan jeda 250 ms, lalu memakai koneksi pertama yang berhasil. Ini mencegah timeout pada jaringan yang jalur IPv6-nya lambat.
+
 ## B. Geoapify (Nilai Tambah)
 
 Tanpa Geoapify, pengguna harus mencari koordinat sendiri di aplikasi lain. Dengan Geoapify, pengguna cukup mengklik titik di peta.
@@ -76,17 +78,17 @@ GET https://api.geoapify.com/v1/geocode/reverse
     ?lat=-7.7956&lon=110.3695&format=json&lang=id&limit=1&apiKey={key}
 ```
 
-Contoh respons (dipotong, nilai ilustrasi):
+Contoh respons asli (dipotong):
 
 ```json
 {
   "results": [
-    { "district": "Gondokusuman", "city": "Yogyakarta", "state": "Daerah Istimewa Yogyakarta", "country": "Indonesia" }
+    { "city": "Kota Yogyakarta", "county": "Depok", "state": "Daerah Istimewa Yogyakarta", "country": "Indonesia" }
   ]
 }
 ```
 
-Aplikasi menyusun nama dengan urutan `district` atau `suburb`, lalu `city` atau `county`, menjadi misalnya "Gondokusuman, Yogyakarta". Jika keduanya kosong, dipakai `state` atau `country`.
+Aplikasi menyusun nama dari `district` atau `suburb`, lalu `city` atau `county`. Contoh di atas tidak punya `district`, sehingga hasilnya "Kota Yogyakarta". Jika keduanya ada, hasilnya "Kecamatan, Kota". Jika semua kosong, dipakai `state` atau `country`.
 
 **Penanganan kesalahan**
 

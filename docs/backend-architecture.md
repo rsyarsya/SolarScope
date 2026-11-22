@@ -52,6 +52,7 @@ SolarScope/
 │   │   ├── Services/
 │   │   │   ├── NasaPowerClient.cs
 │   │   │   ├── GeoapifyReverseGeocodingClient.cs  <-- nama wilayah dari koordinat peta
+│   │   │   ├── FastFallbackHttp.cs             <-- HttpClient dengan fallback cepat IPv6/IPv4
 │   │   │   ├── EnergyCalculator.cs             <-- abstract, formula + alur 12 bulan
 │   │   │   ├── ClimatologyEnergyCalculator.cs  <-- tahun tipikal (365 hari), dipakai aplikasi
 │   │   │   ├── YearlyEnergyCalculator.cs       <-- tahun tertentu (ikut kabisat), contoh polymorphism
