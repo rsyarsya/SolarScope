@@ -105,7 +105,30 @@ internal static class NasaPowerVerification
             check(true, "Explicit caller cancellation propagates");
         }
 
+        await VerifyCacheAsync(check);
         await VerifySimulationManagerAsync(check);
+    }
+
+    private static async Task VerifyCacheAsync(Action<bool, string> check)
+    {
+        int calls = 0;
+        using var client = new HttpClient(new StubHandler((_, _) =>
+        {
+            calls++;
+            return calls == 1 ? Reply("", HttpStatusCode.ServiceUnavailable) : Reply(Payload);
+        }));
+        var nasa = new NasaPowerClient(client);
+
+        var failed = await nasa.GetMonthlyRadiationAsync(Yogyakarta);
+        var retried = await nasa.GetMonthlyRadiationAsync(Yogyakarta);
+        check(!failed.IsSuccess && retried.IsSuccess && calls == 2, "Failed NASA responses are not cached");
+
+        var cached = await nasa.GetMonthlyRadiationAsync(Yogyakarta);
+        check(cached.IsSuccess && cached.Data!.SequenceEqual(retried.Data!) && calls == 2,
+            "Repeated coordinates reuse cached NASA readings without a new request");
+
+        await nasa.GetMonthlyRadiationAsync(new Location { Latitude = -6.2, Longitude = 106.8 });
+        check(calls == 3, "Different coordinates trigger a new NASA request");
     }
 
     // End-to-end facade: input -> NASA POWER (stub) -> calculator -> Simulation.

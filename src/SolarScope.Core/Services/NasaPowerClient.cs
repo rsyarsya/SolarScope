@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
 using SolarScope.Core.Models;
@@ -12,6 +13,10 @@ public sealed class NasaPowerClient(HttpClient httpClient)
     private static readonly string[] Months =
         ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
+    // Climatology data is a long-term average, so it does not change during a session.
+    // Only successful readings are cached; failures are retried on the next call.
+    private readonly ConcurrentDictionary<string, IReadOnlyList<double>> cache = new();
+
     public async Task<ServiceResult<IReadOnlyList<double>>> GetMonthlyRadiationAsync(
         Location location, CancellationToken cancellationToken = default)
     {
@@ -24,6 +29,11 @@ public sealed class NasaPowerClient(HttpClient httpClient)
 
         var url = string.Create(CultureInfo.InvariantCulture,
             $"https://power.larc.nasa.gov/api/temporal/climatology/point?parameters={Parameter}&community=RE&longitude={location.Longitude}&latitude={location.Latitude}&format=JSON");
+        if (cache.TryGetValue(url, out var cached))
+        {
+            return ServiceResult<IReadOnlyList<double>>.Ok(cached);
+        }
+
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(15));
 
@@ -38,7 +48,9 @@ public sealed class NasaPowerClient(HttpClient httpClient)
 
             await using var body = await response.Content.ReadAsStreamAsync(timeout.Token);
             using var document = await JsonDocument.ParseAsync(body, cancellationToken: timeout.Token);
-            return ReadRadiation(document.RootElement);
+            var result = ReadRadiation(document.RootElement);
+            if (result.IsSuccess) cache[url] = result.Data!;
+            return result;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

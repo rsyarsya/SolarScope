@@ -97,6 +97,7 @@ E_tahun (kWh) = Total dari 12 bulan E_bulan
 - **Autentikasi:** Tanpa API Key (bebas akses, publik, reliabel).
 - **Output:** Nilai radiasi bulanan (`JAN` s/d `DEC`) dan tahunan (`ANN`).
 - **Implementasi (`NasaPowerClient.GetMonthlyRadiationAsync`):** memvalidasi koordinat sebelum request, memakai `CultureInfo.InvariantCulture` agar desimal tetap memakai titik, timeout 15 detik, dan menolak respons dengan satuan selain `kW-hr/m^2/day`, bulan hilang, nilai negatif (fill value `-999`), atau JSON rusak. Hasilnya 12 nilai Januari sampai Desember dalam `ServiceResult<IReadOnlyList<double>>`.
+- **Cache di memori:** hasil yang berhasil disimpan per URL request (koordinat yang sama) selama aplikasi berjalan. Simulasi ulang di lokasi yang sama tidak memanggil NASA POWER lagi sehingga lebih cepat dan tetap jalan saat koneksi lambat. Respons gagal tidak disimpan, jadi percobaan berikutnya tetap memanggil API. Data climatology adalah rata-rata jangka panjang, sehingga nilainya tidak berubah selama sesi. Trade-off: cache hilang saat aplikasi ditutup dan tidak dibagi antarpengguna.
 - **Uji langsung (opsional):** `dotnet run --project tests/SolarScope.Core.Verification -- --nasa-live` memanggil API asli untuk Yogyakarta.
 
 ### B2. Reverse Geocoding (Geoapify, pendukung peta)
