@@ -5,6 +5,10 @@ static class Program
     static void Main()
     {
         ApplicationConfiguration.Initialize();
-        Application.Run(new AppController());
+        using (var splash = new StartupSplash())
+            splash.ShowDialog();
+
+        using var controller = new AppController();
+        Application.Run(controller);
     }
 }

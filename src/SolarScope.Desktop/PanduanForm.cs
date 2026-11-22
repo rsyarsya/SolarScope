@@ -1,17 +1,23 @@
+using static SolarScope.DesktopLayout;
+
 namespace SolarScope;
+
 public partial class PanduanForm : Form
 {
-    private AppController? controller;
-    public PanduanForm() { InitializeComponent(); Text = "SolarScope | Panduan dan Tentang"; }
-    public PanduanForm(AppController controller) : this()
+    public PanduanForm() => InitializeComponent();
+
+    private static Label Wrap(string text, float points = 11)
     {
-        this.controller = controller;
-                navHome.Click += (_, _) => controller?.Navigate(Screen.Home);
-        navInput.Click += (_, _) => controller?.Navigate(Screen.Input);
-        navHistory.Click += (_, _) => controller?.Navigate(Screen.History);
-        navComparison.Click += (_, _) => controller?.Navigate(Screen.Comparison);
-        navGuide.Click += (_, _) => controller?.Navigate(Screen.Guide);
-        btnCreate.Click += (_, _) => controller.Navigate(Screen.Input);
-        btnBack.Click += (_, _) => controller.Navigate(Screen.Home);
+        var label = DesktopLayout.Text(text, points);
+        label.Dock = DockStyle.Top;
+        label.MaximumSize = new Size(690, 0);
+        return label;
+    }
+
+    private static Panel Coordinate(string caption, string value)
+    {
+        var panel = new RoundedPanel { Fill = Soft, Width = 146, Height = 56, Padding = new Padding(12, 8, 12, 8) };
+        panel.Controls.Add(Stack(2, Note(caption), DesktopLayout.Text(value, 12, true, DarkGreen)));
+        return panel;
     }
 }
