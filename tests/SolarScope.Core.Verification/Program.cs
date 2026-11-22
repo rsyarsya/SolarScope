@@ -56,6 +56,7 @@ internal static class Program
         await NasaPowerVerification.VerifyAsync(Check);
         await GeoapifyVerification.VerifyAsync(Check);
         ComparisonVerification.Verify(Check);
+        await FastFallbackVerification.VerifyAsync(Check);
         await VerifyDatabaseAsync(parameter, radiation);
 
         Console.WriteLine($"{checks} checks passed");

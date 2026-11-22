@@ -26,7 +26,7 @@ public sealed class AppController : ApplicationContext
     {
         if (httpClient is null)
         {
-            ownedHttpClient = httpClient = new HttpClient();
+            ownedHttpClient = httpClient = FastFallbackHttp.CreateClient();
         }
         Simulations = new SimulationManager(new NasaPowerClient(httpClient));
         MapHttpClient = httpClient;
