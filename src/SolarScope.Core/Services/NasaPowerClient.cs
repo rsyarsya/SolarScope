@@ -13,8 +13,6 @@ public sealed class NasaPowerClient(HttpClient httpClient)
     private static readonly string[] Months =
         ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
-    // Climatology data is a long-term average, so it does not change during a session.
-    // Only successful readings are cached; failures are retried on the next call.
     private readonly ConcurrentDictionary<string, IReadOnlyList<double>> cache = new();
 
     public async Task<ServiceResult<IReadOnlyList<double>>> GetMonthlyRadiationAsync(
