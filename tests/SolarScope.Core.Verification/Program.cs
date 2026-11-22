@@ -56,10 +56,35 @@ internal static class Program
         await NasaPowerVerification.VerifyAsync(Check);
         await GeoapifyVerification.VerifyAsync(Check);
         ComparisonVerification.Verify(Check);
+        await FastFallbackVerification.VerifyAsync(Check);
+        await VerifyOfflineDatabaseAsync(parameter, radiation);
         await VerifyDatabaseAsync(parameter, radiation);
 
         Console.WriteLine($"{checks} checks passed");
         return 0;
+    }
+
+    // Offline (DNS gagal): Npgsql melempar SocketException/TimeoutException mentah. Repository harus
+    // mengubahnya menjadi ServiceResult gagal, bukan exception yang lolos ke UI.
+    private static async Task VerifyOfflineDatabaseAsync(SystemParameter parameter, double[] radiation)
+    {
+        await using var offline = new PostgresSimulationRepository(
+            "Host=solarscope-offline.invalid;Database=postgres;Username=u;Password=p;Timeout=3");
+        var simulation = new Simulation
+        {
+            ScenarioName = "Uji offline",
+            Location = new Location { Latitude = -7.7956, Longitude = 110.3695, LocationName = "Yogyakarta" },
+            SystemParameter = parameter,
+            Summary = new ClimatologyEnergyCalculator().Calculate(parameter, radiation).Data
+        };
+        const string expected = "Database tidak dapat diakses";
+        var insert = await offline.InsertSimulationAsync(simulation);
+        var list = await offline.GetAllSimulationsAsync();
+        var detail = await offline.GetSimulationByIdAsync(1);
+        var delete = await offline.DeleteSimulationAsync(1);
+        Check(new[] { insert.ErrorMessage, list.ErrorMessage, detail.ErrorMessage, delete.ErrorMessage }
+                .All(message => message?.StartsWith(expected) == true),
+            "Unreachable database host returns a friendly error for every operation instead of throwing");
     }
 
     // Round trip ke Supabase: simpan, baca daftar, baca detail, hapus. Data uji dihapus kembali.

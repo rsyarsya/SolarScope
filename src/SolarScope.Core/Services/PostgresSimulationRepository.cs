@@ -87,7 +87,7 @@ public sealed class PostgresSimulationRepository : ISimulationRepository, IDispo
             simulation.CreatedAt = createdAt;
             return ServiceResult<int>.Ok(id);
         }
-        catch (NpgsqlException ex)
+        catch (Exception ex) when (IsDatabaseFailure(ex))
         {
             return ServiceResult<int>.Fail(DatabaseError(ex));
         }
@@ -104,7 +104,7 @@ public sealed class PostgresSimulationRepository : ISimulationRepository, IDispo
             while (await reader.ReadAsync()) simulations.Add(ReadSimulation(reader));
             return ServiceResult<List<Simulation>>.Ok(simulations);
         }
-        catch (NpgsqlException ex)
+        catch (Exception ex) when (IsDatabaseFailure(ex))
         {
             return ServiceResult<List<Simulation>>.Fail(DatabaseError(ex));
         }
@@ -150,7 +150,7 @@ public sealed class PostgresSimulationRepository : ISimulationRepository, IDispo
             }
             return ServiceResult<Simulation>.Ok(simulation);
         }
-        catch (NpgsqlException ex)
+        catch (Exception ex) when (IsDatabaseFailure(ex))
         {
             return ServiceResult<Simulation>.Fail(DatabaseError(ex));
         }
@@ -167,7 +167,7 @@ public sealed class PostgresSimulationRepository : ISimulationRepository, IDispo
                 ? ServiceResult<bool>.Ok(true)
                 : ServiceResult<bool>.Fail($"Simulasi dengan ID {id} tidak ditemukan");
         }
-        catch (NpgsqlException ex)
+        catch (Exception ex) when (IsDatabaseFailure(ex))
         {
             return ServiceResult<bool>.Fail(DatabaseError(ex));
         }
@@ -206,7 +206,12 @@ public sealed class PostgresSimulationRepository : ISimulationRepository, IDispo
         }
     };
 
-    private static string DatabaseError(NpgsqlException ex) => ex is PostgresException pg
+    // Offline, Npgsql can surface raw socket or timeout errors (for example a failed DNS lookup)
+    // instead of NpgsqlException. All of them mean "database unreachable" for the user.
+    private static bool IsDatabaseFailure(Exception ex) =>
+        ex is NpgsqlException or System.Net.Sockets.SocketException or TimeoutException or IOException;
+
+    private static string DatabaseError(Exception ex) => ex is PostgresException pg
         ? $"Database menolak operasi (kode {pg.SqlState}). Hubungi pengelola database jika masalah berlanjut."
         : "Database tidak dapat diakses. Periksa koneksi internet, lalu coba lagi.";
 }

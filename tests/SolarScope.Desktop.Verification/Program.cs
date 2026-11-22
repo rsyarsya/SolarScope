@@ -16,6 +16,7 @@ internal static class Program
     private static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
+        AppSettingsVerification.Run(Check);
         if (args.Contains("--map"))
         {
             MapLocationVerification.Run();

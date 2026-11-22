@@ -26,13 +26,13 @@ public sealed class AppController : ApplicationContext
     {
         if (httpClient is null)
         {
-            ownedHttpClient = httpClient = new HttpClient();
+            ownedHttpClient = httpClient = FastFallbackHttp.CreateClient();
         }
         Simulations = new SimulationManager(new NasaPowerClient(httpClient));
         MapHttpClient = httpClient;
         if (history is null)
         {
-            var connection = Environment.GetEnvironmentVariable(PostgresSimulationRepository.ConnectionEnvironmentVariable);
+            var connection = AppSettings.Current.DatabaseConnection;
             if (string.IsNullOrWhiteSpace(connection))
             {
                 history = new UnavailableSimulationRepository("Koneksi database belum diatur. Atur koneksi dan buka ulang SolarScope.");

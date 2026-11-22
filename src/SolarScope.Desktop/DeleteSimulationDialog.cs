@@ -14,7 +14,9 @@ internal sealed class DeleteSimulationDialog : Form
         AutoScaleMode = AutoScaleMode.Dpi;
         ClientSize = new Size(430, 156);
         AutoSize = true;
-        AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        // GrowOnly keeps ClientSize as the minimum. GrowAndShrink collapsed the dialog to the
+        // narrow preferred width of its percent-based layout, hiding the buttons.
+        AutoSizeMode = AutoSizeMode.GrowOnly;
         Font = DesktopLayout.Font(11);
         BackColor = Color.White;
         Padding = new Padding(24);

@@ -52,6 +52,7 @@ SolarScope/
 │   │   ├── Services/
 │   │   │   ├── NasaPowerClient.cs
 │   │   │   ├── GeoapifyReverseGeocodingClient.cs  <-- nama wilayah dari koordinat peta
+│   │   │   ├── FastFallbackHttp.cs             <-- HttpClient dengan fallback cepat IPv6/IPv4
 │   │   │   ├── EnergyCalculator.cs             <-- abstract, formula + alur 12 bulan
 │   │   │   ├── ClimatologyEnergyCalculator.cs  <-- tahun tipikal (365 hari), dipakai aplikasi
 │   │   │   ├── YearlyEnergyCalculator.cs       <-- tahun tertentu (ikut kabisat), contoh polymorphism
@@ -62,6 +63,7 @@ SolarScope/
 │   │
 │   └── SolarScope.Desktop/          <-- Frontend Desktop (WinForms .NET 9)
 │       ├── AppController.cs         <-- composition root: membuat HttpClient, SimulationManager, repository
+│       ├── AppSettings.cs           <-- baca solarscope.settings.json, fallback env var
 │       └── UnavailableSimulationRepository.cs  <-- pengganti repository saat koneksi database belum diatur
 ├── tests/
 │   ├── SolarScope.Core.Verification/     <-- Verifikasi kalkulator, NASA POWER, Geoapify, SimulationManager, database
@@ -103,7 +105,7 @@ E_tahun (kWh) = Total dari 12 bulan E_bulan
 ### B2. Reverse Geocoding (Geoapify, pendukung peta)
 - **Kelas:** `GeoapifyReverseGeocodingClient.GetRegionAsync(lat, lon)` mengubah koordinat hasil pilihan peta menjadi nama wilayah, misalnya `Kecamatan, Kota`.
 - **Endpoint:** `https://api.geoapify.com/v1/geocode/reverse?lat={lat}&lon={lon}&format=json&lang=id&limit=1&apiKey={key}`. Tile peta di UI memakai `https://maps.geoapify.com/v1/tile/osm-carto`.
-- **API key:** dibaca dari environment variable `SOLARSCOPE_GEOAPIFY_API_KEY` oleh `Form1`. Jika kosong, tombol peta menampilkan pemberitahuan dan pengguna mengisi koordinat secara manual.
+- **API key:** dibaca oleh `AppSettings` dari `GeoapifyApiKey` di `solarscope.settings.json`, atau dari environment variable `SOLARSCOPE_GEOAPIFY_API_KEY` bila kosong. Jika keduanya kosong, tombol peta menampilkan pemberitahuan dan pengguna mengisi koordinat secara manual.
 - **Peran:** hanya membantu pengisian nama lokasi. Kegagalan Geoapify tidak menghentikan simulasi karena perhitungan tetap memakai koordinat dan data NASA POWER.
 
 ### B3. Facade `SimulationManager`
@@ -113,7 +115,7 @@ E_tahun (kWh) = Total dari 12 bulan E_bulan
 ### C. Database PostgreSQL (Supabase)
 - **Server:** PostgreSQL 17 yang dikelola Supabase (Free plan), diakses melalui Supavisor pooler (`aws-0-ap-northeast-1.pooler.supabase.com:5432`, SSL `VerifyFull`).
 - **Library:** `Npgsql` (driver ADO.NET resmi PostgreSQL untuk .NET), tanpa ORM.
-- **Connection string:** dibaca dari environment variable `SOLARSCOPE_DB_CONNECTION`. Tidak pernah ditulis di kode, `appsettings`, atau repository.
+- **Connection string:** dibaca oleh `AppSettings` dari `DatabaseConnection` di `solarscope.settings.json` (folder `.exe`), atau dari environment variable `SOLARSCOPE_DB_CONNECTION` bila kosong. Path `Root Certificate` yang relatif di-resolve terhadap folder aplikasi. Berkas ini hanya dibuat oleh `installer/build.ps1` ke folder `dist/` dan tidak pernah masuk repository. Skema siap jalan ada di `database/schema.sql`.
 - **Tabel:** `simulations` (induk) dan `monthly_productions` (12 baris per simulasi). Detail kolom ada di `docs/diagrams/erd/README.md`.
 - **Row Level Security:** aktif pada kedua tabel. Aplikasi terhubung sebagai role database melalui connection string, bukan melalui API publik Supabase.
 - **Cek koneksi:** `dotnet run --project tools/SolarScope.ConnectionCheck` menampilkan jumlah baris kedua tabel.
