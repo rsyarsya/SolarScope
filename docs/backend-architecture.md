@@ -1,4 +1,4 @@
-# SolarScope — Backend Architecture & Mental Model Blueprint
+# SolarScope - Backend Architecture & Mental Model Blueprint
 
 Dokumen arsitektur backend SolarScope untuk panduan implementasi, integrasi antarmuka, dan kesiapan asesmen teknis (PBO).
 
@@ -24,8 +24,9 @@ Pembangunan backend dibagi menjadi 5 tahapan berurutan:
 | **Step 1** | **Domain Models** | Objek domain (`Simulation`, `Location`, dll.) | Encapsulation & Composition |
 | **Step 2** | **NasaPowerClient** | Mengambil data radiasi matahari via HTTP | Single Responsibility & Abstraksi Eksternal |
 | **Step 3** | **EnergyCalculator** | Menghitung estimasi energi bulanan & tahunan | Encapsulation, Inheritance, Polymorphism |
-| **Step 4** | **PostgresSimulationRepository** | Operasi CRUD riwayat ke PostgreSQL (Supabase) via Npgsql | Data Persistence & Repository Pattern |
-| **Step 5** | **SimulationManager** | Orkestrator alur end-to-end + Result Pattern | Facade Pattern & Graceful Error Handling |
+| **Step 4** | **ISimulationRepository** + **PostgresSimulationRepository** | Kontrak dan operasi CRUD riwayat ke PostgreSQL (Supabase) via Npgsql | Data Persistence, Repository Pattern, Abstraction |
+| **Step 5** | **SimulationManager** | Orkestrator simulasi (`CalculateAsync`) dan perbandingan kapasitas (`CompareCapacities`) + Result Pattern | Facade Pattern & Graceful Error Handling |
+| Pendukung | **GeoapifyReverseGeocodingClient** | Mengubah koordinat dari peta menjadi nama wilayah (opsional, tidak memengaruhi perhitungan) | Single Responsibility |
 
 ---
 
@@ -46,20 +47,24 @@ SolarScope/
 │   │   │   ├── MonthlyProduction.cs
 │   │   │   ├── SimulationSummary.cs
 │   │   │   ├── Simulation.cs
+│   │   │   ├── CapacityEstimate.cs             <-- hasil per kapasitas (perbandingan)
 │   │   │   └── ServiceResult.cs
 │   │   ├── Services/
 │   │   │   ├── NasaPowerClient.cs
+│   │   │   ├── GeoapifyReverseGeocodingClient.cs  <-- nama wilayah dari koordinat peta
 │   │   │   ├── EnergyCalculator.cs             <-- abstract, formula + alur 12 bulan
-│   │   │   ├── ClimatologyEnergyCalculator.cs  <-- tahun tipikal (365 hari)
-│   │   │   ├── YearlyEnergyCalculator.cs       <-- tahun tertentu (ikut kabisat)
-│   │   │   └── PostgresSimulationRepository.cs
-│   │   ├── SimulationManager.cs     <-- Facade untuk UI
+│   │   │   ├── ClimatologyEnergyCalculator.cs  <-- tahun tipikal (365 hari), dipakai aplikasi
+│   │   │   ├── YearlyEnergyCalculator.cs       <-- tahun tertentu (ikut kabisat), contoh polymorphism
+│   │   │   ├── ISimulationRepository.cs        <-- kontrak penyimpanan riwayat
+│   │   │   ├── PostgresSimulationRepository.cs
+│   │   │   └── SimulationManager.cs            <-- Facade untuk UI
 │   │   └── SolarScope.Core.csproj
 │   │
 │   └── SolarScope.Desktop/          <-- Frontend Desktop (WinForms .NET 9)
-│       └── (Dikelola oleh Frontend Developer)
+│       ├── AppController.cs         <-- composition root: membuat HttpClient, SimulationManager, repository
+│       └── UnavailableSimulationRepository.cs  <-- pengganti repository saat koneksi database belum diatur
 ├── tests/
-│   ├── SolarScope.Core.Verification/     <-- Verifikasi kalkulator energi
+│   ├── SolarScope.Core.Verification/     <-- Verifikasi kalkulator, NASA POWER, Geoapify, SimulationManager, database
 │   └── SolarScope.Desktop.Verification/  <-- Verifikasi alur UI
 ├── tools/
 │   └── SolarScope.ConnectionCheck/       <-- Cek koneksi database Supabase
@@ -91,6 +96,19 @@ E_tahun (kWh) = Total dari 12 bulan E_bulan
   `https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude={lon}&latitude={lat}&format=JSON`
 - **Autentikasi:** Tanpa API Key (bebas akses, publik, reliabel).
 - **Output:** Nilai radiasi bulanan (`JAN` s/d `DEC`) dan tahunan (`ANN`).
+- **Implementasi (`NasaPowerClient.GetMonthlyRadiationAsync`):** memvalidasi koordinat sebelum request, memakai `CultureInfo.InvariantCulture` agar desimal tetap memakai titik, timeout 15 detik, dan menolak respons dengan satuan selain `kW-hr/m^2/day`, bulan hilang, nilai negatif (fill value `-999`), atau JSON rusak. Hasilnya 12 nilai Januari sampai Desember dalam `ServiceResult<IReadOnlyList<double>>`.
+- **Cache di memori:** hasil yang berhasil disimpan per URL request (koordinat yang sama) selama aplikasi berjalan. Simulasi ulang di lokasi yang sama tidak memanggil NASA POWER lagi sehingga lebih cepat dan tetap jalan saat koneksi lambat. Respons gagal tidak disimpan, jadi percobaan berikutnya tetap memanggil API. Data climatology adalah rata-rata jangka panjang, sehingga nilainya tidak berubah selama sesi. Trade-off: cache hilang saat aplikasi ditutup dan tidak dibagi antarpengguna.
+- **Uji langsung (opsional):** `dotnet run --project tests/SolarScope.Core.Verification -- --nasa-live` memanggil API asli untuk Yogyakarta.
+
+### B2. Reverse Geocoding (Geoapify, pendukung peta)
+- **Kelas:** `GeoapifyReverseGeocodingClient.GetRegionAsync(lat, lon)` mengubah koordinat hasil pilihan peta menjadi nama wilayah, misalnya `Kecamatan, Kota`.
+- **Endpoint:** `https://api.geoapify.com/v1/geocode/reverse?lat={lat}&lon={lon}&format=json&lang=id&limit=1&apiKey={key}`. Tile peta di UI memakai `https://maps.geoapify.com/v1/tile/osm-carto`.
+- **API key:** dibaca dari environment variable `SOLARSCOPE_GEOAPIFY_API_KEY` oleh `Form1`. Jika kosong, tombol peta menampilkan pemberitahuan dan pengguna mengisi koordinat secara manual.
+- **Peran:** hanya membantu pengisian nama lokasi. Kegagalan Geoapify tidak menghentikan simulasi karena perhitungan tetap memakai koordinat dan data NASA POWER.
+
+### B3. Facade `SimulationManager`
+- **`CalculateAsync(name, location, parameter)`:** menyalin dan merapikan input (trim), memvalidasi `Simulation`, mengambil radiasi dari `NasaPowerClient`, lalu menghitung dengan `ClimatologyEnergyCalculator`. Input tidak valid ditolak sebelum request ke NASA POWER.
+- **`CompareCapacities(source, alternatives)`:** menghitung ulang 1 atau 2 kapasitas alternatif (0,01 sampai 10.000 kWp, maksimal dua desimal, tidak boleh sama) memakai radiasi bulanan dari simulasi acuan, sehingga tidak perlu memanggil API lagi. Hasilnya daftar `CapacityEstimate`.
 
 ### C. Database PostgreSQL (Supabase)
 - **Server:** PostgreSQL 17 yang dikelola Supabase (Free plan), diakses melalui Supavisor pooler (`aws-0-ap-northeast-1.pooler.supabase.com:5432`, SSL `VerifyFull`).
@@ -100,6 +118,7 @@ E_tahun (kWh) = Total dari 12 bulan E_bulan
 - **Row Level Security:** aktif pada kedua tabel. Aplikasi terhubung sebagai role database melalui connection string, bukan melalui API publik Supabase.
 - **Cek koneksi:** `dotnet run --project tools/SolarScope.ConnectionCheck` menampilkan jumlah baris kedua tabel.
 - **Catatan operasional:** project Free plan otomatis di-pause setelah sekitar 7 hari tidak aktif. Gejalanya error `XX000 ... tenant/user ... not found`. Pulihkan melalui **Restore project** di dashboard Supabase.
+- **Kontrak `ISimulationRepository`:** UI (`AppController`) bergantung pada interface ini, bukan langsung pada kelas PostgreSQL. Implementasinya `PostgresSimulationRepository` (produksi), `UnavailableSimulationRepository` (connection string kosong atau tidak valid, sehingga aplikasi tetap terbuka dan menampilkan pesan), serta `TestSimulationRepository` (verifikasi UI tanpa database).
 - **Operasi repository (`PostgresSimulationRepository`, semua mengembalikan `ServiceResult<T>`):**
   - `InsertSimulationAsync(Simulation sim)`: Menyimpan riwayat simulasi baru beserta rincian 12 bulan dalam satu transaksi.
   - `GetAllSimulationsAsync()`: Mengambil daftar ringkasan riwayat (tanpa rincian bulanan) untuk ditampilkan di tabel UI.
@@ -141,9 +160,9 @@ Backend tidak membiarkan exception lolos langsung ke antarmuka pengguna agar apl
 ```csharp
 public class ServiceResult<T>
 {
-    public bool IsSuccess { get; set; }
-    public T? Data { get; set; }
-    public string? ErrorMessage { get; set; }
+    public bool IsSuccess { get; init; }
+    public T? Data { get; init; }
+    public string? ErrorMessage { get; init; }
 
     public static ServiceResult<T> Ok(T data) => new() { IsSuccess = true, Data = data };
     public static ServiceResult<T> Fail(string error) => new() { IsSuccess = false, ErrorMessage = error };

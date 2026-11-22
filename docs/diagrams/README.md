@@ -7,7 +7,7 @@ Diagram pada folder ini menggambarkan kebutuhan dan alur SolarScope pada tahap p
 - [Pratinjau](use-case/use-case.png)
 - [Sumber yang dapat diedit](use-case/use-case.drawio)
 
-Penyedia API final belum dikunci. Karena itu, diagram menggunakan istilah umum **layanan data radiasi eksternal**.
+Diagram menggunakan istilah umum **layanan data radiasi eksternal**. Pada implementasi, layanan tersebut adalah NASA POWER Climatology (`NasaPowerClient`).
 
 ## Activity Diagram
 
@@ -28,15 +28,16 @@ Penyedia API final belum dikunci. Karena itu, diagram menggunakan istilah umum *
 
 ## Status
 
-Diagram merupakan artefak perancangan Minggu 2. Class diagram telah ditambahkan; penyelarasan antardiagram masih perlu ditinjau bersama tim.
+Diagram merupakan artefak perancangan Minggu 2. Class diagram sesuai implementasi tersedia dalam format Mermaid di [class/README.md](class/README.md). Gambar Minggu 2 tetap disimpan sebagai arsip rancangan.
 
 ## Class Diagram
 
+- [Class diagram sesuai implementasi (Mermaid)](class/README.md#class-diagram-sesuai-implementasi)
 - [Versi sederhana](class/class-diagram-simple.png)
 - [Versi dengan method](class/class-diagram-with-methods.jpeg)
 - [Catatan kedua versi](class/README.md)
 
-Kedua gambar diunggah sesuai berkas yang diberikan. File sumber yang dapat diedit belum disertakan untuk class diagram.
+Kedua gambar diunggah sesuai berkas yang diberikan. Sumber yang dapat diedit untuk class diagram adalah blok Mermaid di `class/README.md`.
 
 ## Entity Relationship Diagram (ERD)
 

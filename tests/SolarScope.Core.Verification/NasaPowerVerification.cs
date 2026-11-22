@@ -104,6 +104,64 @@ internal static class NasaPowerVerification
         {
             check(true, "Explicit caller cancellation propagates");
         }
+
+        await VerifyCacheAsync(check);
+        await VerifySimulationManagerAsync(check);
+    }
+
+    private static async Task VerifyCacheAsync(Action<bool, string> check)
+    {
+        int calls = 0;
+        using var client = new HttpClient(new StubHandler((_, _) =>
+        {
+            calls++;
+            return calls == 1 ? Reply("", HttpStatusCode.ServiceUnavailable) : Reply(Payload);
+        }));
+        var nasa = new NasaPowerClient(client);
+
+        var failed = await nasa.GetMonthlyRadiationAsync(Yogyakarta);
+        var retried = await nasa.GetMonthlyRadiationAsync(Yogyakarta);
+        check(!failed.IsSuccess && retried.IsSuccess && calls == 2, "Failed NASA responses are not cached");
+
+        var cached = await nasa.GetMonthlyRadiationAsync(Yogyakarta);
+        check(cached.IsSuccess && cached.Data!.SequenceEqual(retried.Data!) && calls == 2,
+            "Repeated coordinates reuse cached NASA readings without a new request");
+
+        await nasa.GetMonthlyRadiationAsync(new Location { Latitude = -6.2, Longitude = 106.8 });
+        check(calls == 3, "Different coordinates trigger a new NASA request");
+    }
+
+    // End-to-end facade: input -> NASA POWER (stub) -> calculator -> Simulation.
+    private static async Task VerifySimulationManagerAsync(Action<bool, string> check)
+    {
+        int requests = 0;
+        using var client = new HttpClient(new StubHandler((_, _) =>
+        {
+            requests++;
+            return Reply(Payload);
+        }));
+        var manager = new SimulationManager(new NasaPowerClient(client));
+        var location = new Location { Latitude = -7.7956, Longitude = 110.3695, LocationName = "  Yogyakarta " };
+
+        var result = await manager.CalculateAsync("  Rumah ", location, new SystemParameter { SystemCapacityKwp = 2 });
+        check(result.IsSuccess
+              && result.Data!.ScenarioName == "Rumah"
+              && result.Data.Location.LocationName == "Yogyakarta"
+              && result.Data.Summary!.MonthlyProductions.Count == 12
+              && result.Data.Summary.TotalAnnualEnergyKwh == 2824.83,
+            "SimulationManager returns a trimmed simulation with 12 months from NASA data");
+        check(!ReferenceEquals(result.Data!.Location, location), "SimulationManager copies input instead of sharing caller objects");
+
+        requests = 0;
+        var blankName = await manager.CalculateAsync(" ", location, new SystemParameter { SystemCapacityKwp = 2 });
+        var zeroCapacity = await manager.CalculateAsync("Rumah", location, new SystemParameter { SystemCapacityKwp = 0 });
+        check(!blankName.IsSuccess && !zeroCapacity.IsSuccess && requests == 0,
+            "SimulationManager rejects invalid input before calling NASA POWER");
+
+        using var down = new HttpClient(new StubHandler((_, _) => Reply("", HttpStatusCode.ServiceUnavailable)));
+        var failed = await new SimulationManager(new NasaPowerClient(down))
+            .CalculateAsync("Rumah", location, new SystemParameter { SystemCapacityKwp = 2 });
+        check(!failed.IsSuccess && failed.ErrorMessage!.Contains("503"), "SimulationManager forwards NASA POWER failure as ServiceResult");
     }
 
     public static async Task VerifyLiveAsync(Action<bool, string> check)
