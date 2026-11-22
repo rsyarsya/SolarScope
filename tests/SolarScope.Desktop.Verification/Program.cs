@@ -153,9 +153,11 @@ internal static class Program
         controller.Navigate(Screen.Input);
         inputForm = controller.ActivePage!;
         ((NumericUpDown)inputForm.Controls.Find("nudKapasitas", true).Single()).Value = 4;
+        int requestsBeforeRecalculation = handler.RequestCount;
         ((Button)inputForm.Controls.Find("btnLihatHasil", true).Single()).PerformClick();
-        if (!live) handler.Complete(HttpStatusCode.OK);
         WaitFor(() => controller.ActivePage is HasilForm { Visible: true } && inputForm.IsDisposed);
+        Check(live || handler.RequestCount == requestsBeforeRecalculation,
+            "Recalculating the same coordinates reuses cached NASA readings");
         var second = controller.Session.CurrentResult!;
         Check(!ReferenceEquals(second, first) && Math.Abs(second.Estimate.Summary!.TotalAnnualEnergyKwh - 2 * firstTotal) <= 0.120001,
             "Doubling capacity approximately doubles the estimate");
