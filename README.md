@@ -133,7 +133,19 @@ Untuk Supabase Session Pooler, susun detail dari dashboard dalam format berikut.
 Host=<host pooler>;Port=5432;Database=postgres;Username=<username pooler>;Password="<password database>";SSL Mode=VerifyFull
 ```
 
-Variabel di atas berlaku untuk terminal saat ini. Untuk pemakaian lintas sesi, simpan keduanya sebagai **User environment variables** di Windows, lalu buka ulang terminal atau IDE. Simpan kredensial dan sertifikat lokal di luar Git. Lihat [konfigurasi dan skema database](docs/backend-architecture.md#c-database-postgresql-supabase).
+Variabel di atas berlaku untuk terminal saat ini. Untuk pemakaian lintas sesi, simpan keduanya sebagai **User environment variables** di Windows, lalu buka ulang terminal atau IDE. Simpan kredensial dan sertifikat lokal di luar Git. Lihat [konfigurasi dan skema database](docs/backend-architecture.md#c-database-postgresql-supabase). Skrip pembuatan tabel tersedia di [`database/schema.sql`](database/schema.sql).
+
+Sebagai alternatif env var, aplikasi juga membaca `solarscope.settings.json` di folder `.exe` dengan kunci `DatabaseConnection` dan `GeoapifyApiKey`. Nilai di berkas ini didahulukan. Nilai yang kosong tetap diambil dari env var.
+
+### Membuat installer
+
+Installer `dist/SolarScope-Setup.exe` berisi aplikasi self-contained (tanpa perlu .NET), `solarscope.settings.json` dari env var lokal, dan sertifikat root database. Butuh [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`winget install JRSoftware.InnoSetup`).
+
+```powershell
+powershell -ExecutionPolicy Bypass -File installer\build.ps1
+```
+
+Folder `dist/` berisi kredensial dan tidak masuk Git. Panduan instalasi untuk pengguna ada di [docs/modul-10](docs/modul-10/README.md).
 
 ---
 
