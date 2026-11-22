@@ -31,13 +31,14 @@ Energi tahunan (kWh) = jumlah energi 12 bulan
 
 ## Arsitektur Singkat
 
-```text
-SolarScope.Desktop (WinForms)  ──►  SolarScope.Core (logika + akses data)
-                                        ├── NasaPowerClient ─────────────► NASA POWER REST API
-                                        ├── GeoapifyReverseGeocodingClient ► Geoapify REST API
-                                        ├── EnergyCalculator (perhitungan)
-                                        └── PostgresSimulationRepository ─► PostgreSQL (Supabase)
-```
+| Komponen | Project | Tanggung jawab | Terhubung ke |
+| --- | --- | --- | --- |
+| Form (Beranda, Simulasi, Hasil, Riwayat, Perbandingan, Panduan) | SolarScope.Desktop | Tampilan dan input pengguna | `SimulationManager`, `ISimulationRepository` |
+| `SimulationManager` | SolarScope.Core | Mengatur alur simulasi dan perbandingan | `NasaPowerClient`, `EnergyCalculator` |
+| `NasaPowerClient` | SolarScope.Core | Mengambil radiasi matahari bulanan | NASA POWER REST API |
+| `GeoapifyReverseGeocodingClient` | SolarScope.Core | Mengubah koordinat menjadi nama wilayah | Geoapify REST API |
+| `EnergyCalculator` | SolarScope.Core | Menghitung estimasi energi | Tidak ada (perhitungan lokal) |
+| `PostgresSimulationRepository` | SolarScope.Core | Simpan, baca, dan hapus riwayat | PostgreSQL (Supabase) |
 
 ## Isi Worksheet
 

@@ -40,6 +40,7 @@ Lokasi: `%LocalAppData%\Programs\SolarScope\solarscope.settings.json`
 | `GeoapifyApiKey` | API key untuk peta dan nama wilayah | Tombol **Pilih di peta** menampilkan pesan, lokasi diisi manual |
 
 Catatan:
+
 - Path `Root Certificate` boleh relatif. Aplikasi mencarinya dari folder instalasi.
 - Setelah mengubah berkas, tutup lalu buka kembali SolarScope.
 - Untuk pengembang, nilai yang kosong otomatis diambil dari environment variable `SOLARSCOPE_DB_CONNECTION` dan `SOLARSCOPE_GEOAPIFY_API_KEY`.
@@ -52,12 +53,7 @@ Langkah ini hanya diperlukan bila tidak ingin memakai database tim.
 2. Buka **SQL Editor**, tempel isi `database/schema.sql`, lalu klik **Run**. Dua tabel terbentuk: `simulations` dan `monthly_productions`.
 3. Buka **Connect** (atau **Project Settings > Database**), pilih **Session pooler**, lalu salin Host, Port, Database, dan User.
 4. Unduh **SSL certificate** dari halaman yang sama, simpan sebagai `certs\supabase-root.crt` di folder instalasi (timpa berkas lama).
-5. Ubah `DatabaseConnection` di `solarscope.settings.json`:
-
-   ```text
-   Host=<host pooler>;Port=5432;Database=postgres;Username=<user pooler>;Password=<password>;SSL Mode=VerifyFull;Root Certificate=certs\supabase-root.crt
-   ```
-
+5. Ubah `DatabaseConnection` di `solarscope.settings.json` dengan format `Host=<host pooler>;Port=5432;Database=postgres;Username=<user pooler>;Password=<password>;SSL Mode=VerifyFull;Root Certificate=certs\supabase-root.crt`
 6. Buka SolarScope, buat satu simulasi, klik **Simpan**, lalu cek di menu **Riwayat**.
 
 ## Memakai API Key Geoapify Sendiri (Opsional)
