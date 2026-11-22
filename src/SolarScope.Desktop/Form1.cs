@@ -36,10 +36,10 @@ public partial class Form1 : Form
     private void PickLocation()
     {
         if (controller is null || calculation is not null) return;
-        var key = Environment.GetEnvironmentVariable("SOLARSCOPE_GEOAPIFY_API_KEY")?.Trim();
-        if (string.IsNullOrWhiteSpace(key))
+        var key = AppSettings.Current.GeoapifyApiKey;
+        if (key is null)
         {
-            ShowNotice("Peta belum dikonfigurasi. Isi lokasi secara manual atau atur SOLARSCOPE_GEOAPIFY_API_KEY.", error: true);
+            ShowNotice($"Peta belum dikonfigurasi. Isi lokasi secara manual atau isi GeoapifyApiKey di {AppSettings.FileName} ({AppSettings.GeoapifyEnvironmentVariable}).", error: true);
             return;
         }
 

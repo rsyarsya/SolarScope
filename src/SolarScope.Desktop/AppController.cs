@@ -32,7 +32,7 @@ public sealed class AppController : ApplicationContext
         MapHttpClient = httpClient;
         if (history is null)
         {
-            var connection = Environment.GetEnvironmentVariable(PostgresSimulationRepository.ConnectionEnvironmentVariable);
+            var connection = AppSettings.Current.DatabaseConnection;
             if (string.IsNullOrWhiteSpace(connection))
             {
                 history = new UnavailableSimulationRepository("Koneksi database belum diatur. Atur koneksi dan buka ulang SolarScope.");
