@@ -33,3 +33,9 @@ Thumbs.db
 .DS_Store
 
 SolarScope_Project_Context.md
+## Packaging output and local settings (contain secrets)
+dist/
+solarscope.settings.json
+
+## Course material (not part of the app)
+docs/MODUL*.pdf
