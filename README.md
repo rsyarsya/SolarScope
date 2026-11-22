@@ -145,7 +145,7 @@ Installer `dist/SolarScope-Setup.exe` berisi aplikasi self-contained (tanpa perl
 powershell -ExecutionPolicy Bypass -File installer\build.ps1
 ```
 
-Folder `dist/` berisi kredensial dan tidak masuk Git. Panduan instalasi untuk pengguna ada di [docs/modul-10](docs/modul-10/README.md).
+Folder `dist/` berisi kredensial dan tidak masuk Git. Panduan instalasi dan penggunaan ada di [docs/user-guide](docs/user-guide/README.md).
 
 ---
 

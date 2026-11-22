@@ -1,4 +1,4 @@
-# Worksheet Homework Modul 10: Minimum Viable Product SolarScope
+# Panduan SolarScope
 
 | | |
 | --- | --- |
@@ -7,7 +7,7 @@
 | Bentuk | Aplikasi desktop Windows (WinForms, C#) |
 | Berkas instalasi | `SolarScope-Setup.exe` |
 
-## Ringkasan MVP
+## Ringkasan
 
 SolarScope memberi estimasi awal potensi energi panel surya. Pengguna memasukkan nama simulasi, lokasi, dan kapasitas sistem (kWp). Aplikasi mengambil rata-rata radiasi matahari bulanan dari NASA POWER, menghitung estimasi energi tiap bulan dan total satu tahun, lalu menyimpan hasilnya ke database PostgreSQL (Supabase) agar dapat dibuka kembali, dibandingkan dengan kapasitas lain, atau dihapus.
 
@@ -40,18 +40,15 @@ Energi tahunan (kWh) = jumlah energi 12 bulan
 | `EnergyCalculator` | SolarScope.Core | Menghitung estimasi energi | Tidak ada (perhitungan lokal) |
 | `PostgresSimulationRepository` | SolarScope.Core | Simpan, baca, dan hapus riwayat | PostgreSQL (Supabase) |
 
-## Isi Worksheet
+## Daftar Panduan
 
 1. [Panduan Instalasi dan Konfigurasi](01-instalasi-konfigurasi.md)
 2. [Panduan Pengguna](02-panduan-pengguna.md)
 3. [Integrasi Web API](03-integrasi-web-api.md)
-4. [Black Box Testing](04-black-box-testing.md)
 
-## Isi Paket Submisi
+## Berkas Rilis
 
-```text
-SolarScope-Modul10/
-├── SolarScope-Setup.exe               installer, sudah berisi konfigurasi database dan peta
-├── Worksheet-Modul10-SolarScope.pdf   dokumen ini
-└── database/schema.sql                skrip pembuatan tabel bila ingin memakai database sendiri
-```
+| Berkas | Isi |
+| --- | --- |
+| `SolarScope-Setup.exe` | Installer, dibuat dengan `installer/build.ps1`. Sudah berisi konfigurasi database dan peta |
+| [`database/schema.sql`](../../database/schema.sql) | Skrip pembuatan tabel bila ingin memakai database sendiri |
