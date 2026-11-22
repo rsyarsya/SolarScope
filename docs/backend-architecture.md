@@ -1,4 +1,4 @@
-# SolarScope — Backend Architecture & Mental Model Blueprint
+# SolarScope - Backend Architecture & Mental Model Blueprint
 
 Dokumen arsitektur backend SolarScope untuk panduan implementasi, integrasi antarmuka, dan kesiapan asesmen teknis (PBO).
 
@@ -96,7 +96,7 @@ E_tahun (kWh) = Total dari 12 bulan E_bulan
   `https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude={lon}&latitude={lat}&format=JSON`
 - **Autentikasi:** Tanpa API Key (bebas akses, publik, reliabel).
 - **Output:** Nilai radiasi bulanan (`JAN` s/d `DEC`) dan tahunan (`ANN`).
-- **Implementasi (`NasaPowerClient.GetMonthlyRadiationAsync`):** memvalidasi koordinat sebelum request, memakai `CultureInfo.InvariantCulture` agar desimal tetap memakai titik, timeout 15 detik, dan menolak respons dengan satuan selain `kW-hr/m^2/day`, bulan hilang, nilai negatif (fill value `-999`), atau JSON rusak. Hasilnya 12 nilai Januari–Desember dalam `ServiceResult<IReadOnlyList<double>>`.
+- **Implementasi (`NasaPowerClient.GetMonthlyRadiationAsync`):** memvalidasi koordinat sebelum request, memakai `CultureInfo.InvariantCulture` agar desimal tetap memakai titik, timeout 15 detik, dan menolak respons dengan satuan selain `kW-hr/m^2/day`, bulan hilang, nilai negatif (fill value `-999`), atau JSON rusak. Hasilnya 12 nilai Januari sampai Desember dalam `ServiceResult<IReadOnlyList<double>>`.
 - **Uji langsung (opsional):** `dotnet run --project tests/SolarScope.Core.Verification -- --nasa-live` memanggil API asli untuk Yogyakarta.
 
 ### B2. Reverse Geocoding (Geoapify, pendukung peta)
@@ -107,7 +107,7 @@ E_tahun (kWh) = Total dari 12 bulan E_bulan
 
 ### B3. Facade `SimulationManager`
 - **`CalculateAsync(name, location, parameter)`:** menyalin dan merapikan input (trim), memvalidasi `Simulation`, mengambil radiasi dari `NasaPowerClient`, lalu menghitung dengan `ClimatologyEnergyCalculator`. Input tidak valid ditolak sebelum request ke NASA POWER.
-- **`CompareCapacities(source, alternatives)`:** menghitung ulang 1–2 kapasitas alternatif (0,01–10.000 kWp, maksimal dua desimal, tidak boleh sama) memakai radiasi bulanan dari simulasi acuan, sehingga tidak perlu memanggil API lagi. Hasilnya daftar `CapacityEstimate`.
+- **`CompareCapacities(source, alternatives)`:** menghitung ulang 1 atau 2 kapasitas alternatif (0,01 sampai 10.000 kWp, maksimal dua desimal, tidak boleh sama) memakai radiasi bulanan dari simulasi acuan, sehingga tidak perlu memanggil API lagi. Hasilnya daftar `CapacityEstimate`.
 
 ### C. Database PostgreSQL (Supabase)
 - **Server:** PostgreSQL 17 yang dikelola Supabase (Free plan), diakses melalui Supavisor pooler (`aws-0-ap-northeast-1.pooler.supabase.com:5432`, SSL `VerifyFull`).

@@ -2,7 +2,7 @@
 
 ## Class Diagram Sesuai Implementasi
 
-Diagram ini mengikuti kode di `src/SolarScope.Core` dan menjadi acuan utama. GitHub merender blok Mermaid secara langsung; untuk mengedit, ubah teks di bawah.
+Diagram ini mengikuti kode di `src/SolarScope.Core` dan menjadi acuan utama. GitHub merender blok Mermaid secara langsung. Untuk mengedit, ubah teks di bawah.
 
 ```mermaid
 classDiagram
@@ -111,7 +111,7 @@ classDiagram
 
 Catatan:
 
-- `Simulation` memiliki `Location` dan `SystemParameter` secara komposisi; `Summary` bernilai `null` sampai perhitungan selesai.
+- `Simulation` memiliki `Location` dan `SystemParameter` secara komposisi. `Summary` bernilai `null` sampai perhitungan selesai.
 - `EnergyCalculator` memakai Template Method: alur 12 bulan sama, sedangkan jumlah hari per bulan ditentukan subclass.
 - Semua operasi yang dapat gagal mengembalikan `ServiceResult<T>` sehingga UI tidak menerima exception mentah.
 - Implementasi `ISimulationRepository` lain di project Desktop (`UnavailableSimulationRepository`) dan test (`TestSimulationRepository`) tidak digambar.
@@ -140,7 +140,7 @@ Menampilkan `Simulasi`, `Lokasi`, `SistemPanelSurya`, `HasilEstimasi`, `NasaPowe
 | `Lokasi` | `Location` |
 | `SistemPanelSurya` | `SystemParameter` |
 | `HasilEstimasi` | `SimulationSummary` + `MonthlyProduction` |
-| `SolarRadiationData` / `SolarRadianceData` | Tidak dibuat sebagai class; radiasi disimpan di `MonthlyProduction.SolarRadiationDailyAverage` |
+| `SolarRadiationData` / `SolarRadianceData` | Tidak dibuat sebagai class. Radiasi disimpan di `MonthlyProduction.SolarRadiationDailyAverage` |
 | `NasaPowerApiClient` | `NasaPowerClient` |
 | `AnalyticsEngine` | `EnergyCalculator` dan turunannya |
 | `RiwayatSimulasi` | `ISimulationRepository` / `PostgresSimulationRepository` |

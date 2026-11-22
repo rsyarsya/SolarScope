@@ -28,7 +28,7 @@ Diagram menggunakan istilah umum **layanan data radiasi eksternal**. Pada implem
 
 ## Status
 
-Diagram merupakan artefak perancangan Minggu 2. Class diagram sesuai implementasi tersedia dalam format Mermaid di [class/README.md](class/README.md); gambar Minggu 2 tetap disimpan sebagai arsip rancangan.
+Diagram merupakan artefak perancangan Minggu 2. Class diagram sesuai implementasi tersedia dalam format Mermaid di [class/README.md](class/README.md). Gambar Minggu 2 tetap disimpan sebagai arsip rancangan.
 
 ## Class Diagram
 

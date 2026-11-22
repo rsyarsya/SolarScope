@@ -1,4 +1,4 @@
-# Entity Relationship Diagram (ERD) — SolarScope
+# Entity Relationship Diagram (ERD) - SolarScope
 
 Dokumen ini mendeskripsikan model data relasional (ERD) untuk aplikasi SolarScope yang diimplementasikan pada database PostgreSQL (Supabase).
 
@@ -65,7 +65,7 @@ Tabel ini menyimpan hasil rincian produksi energi untuk setiap bulan (12 baris d
 | Nama Atribut | Tipe Data (Model / PostgreSQL) | Constraint | Besaran / Satuan | Keterangan & Batasan |
 | :--- | :--- | :--- | :--- | :--- |
 | `simulation_id` | `int` / `integer` | **PK**, **FK** | Dimensi nominal (ID) | Mengacu ke `simulations.simulation_id` (`ON DELETE CASCADE`). |
-| `month_index` | `int` / `integer` | **PK**, CHECK 1–12 | Indeks numerik (1 s/d 12) | Urutan bulan kalender (1 = Januari, 2 = Februari, ..., 12 = Desember). |
+| `month_index` | `int` / `integer` | **PK**, CHECK 1-12 | Indeks numerik (1 s/d 12) | Urutan bulan kalender (1 = Januari, 2 = Februari, ..., 12 = Desember). |
 | `month_name` | `string` / `text` | NOT NULL | Teks singkatan / label | Label bulan (Jan, Feb, Mar, Apr, Mei, Jun, Jul, Agu, Sep, Okt, Nov, Des). |
 | `solar_radiation_daily_average` | `double` / `double precision` | NOT NULL | **$\text{kWh/m}^2\text{/hari}$** | Rata-rata radiasi harian pada bulan berjalan dari NASA POWER (`ALLSKY_SFC_SW_DWN`). |
 | `estimated_energy_kwh` | `double` / `double precision` | NOT NULL | **Kilowatt-hour (kWh)** | Estimasi produksi energi bulanan ($P_{\text{peak}} \times G_{\text{harian}} \times \text{hari} \times \text{PR}$). |
